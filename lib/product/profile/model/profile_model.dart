@@ -49,19 +49,22 @@ class User {
   DailyPractice? dailyPractice;
   bool? isConversations;
   List<String>? interestTitles;
+  UserDetail? userDetail;
 
-  User(
-      {this.id,
-      this.name,
-      this.email,
-      this.nativeLanguage,
-      this.learnLanguages,
-      this.profilePhoto,
-      this.isAvatar,
-      this.color,
-      this.dailyPractice,
-      this.isConversations,
-      this.interestTitles});
+  User({
+    this.id,
+    this.name,
+    this.email,
+    this.nativeLanguage,
+    this.learnLanguages,
+    this.profilePhoto,
+    this.isAvatar,
+    this.color,
+    this.dailyPractice,
+    this.isConversations,
+    this.interestTitles,
+    this.userDetail,
+  });
 
   User.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -69,6 +72,9 @@ class User {
     email = json['email'];
     nativeLanguage = json['native_language'] != null
         ? NativeLanguage.fromJson(json['native_language'])
+        : null;
+    userDetail = json['user_detail'] != null
+        ? UserDetail.fromJson(json['user_detail'])
         : null;
     if (json['learn_languages'] != null) {
       learnLanguages = <LearnLanguages>[];
@@ -106,6 +112,26 @@ class User {
     data['is_conversations'] = isConversations;
     data['interest_titles'] = interestTitles;
     return data;
+  }
+}
+
+class UserDetail {
+  int? targetId;
+  String? sessionLength;
+  String? timeOfReminder;
+  int? score;
+  UserDetail({
+    this.targetId,
+    this.sessionLength,
+    this.timeOfReminder,
+    this.score,
+  });
+
+  UserDetail.fromJson(Map<String, dynamic> json) {
+    targetId = json["target_id"];
+    sessionLength = json["session_length"];
+    timeOfReminder = json["time_of_reminder"];
+    score = json["score"];
   }
 }
 

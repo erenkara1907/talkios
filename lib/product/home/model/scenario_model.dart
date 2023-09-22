@@ -56,6 +56,7 @@ class Scenarios {
   String? conversationCompletedScenario;
   int? isLocked;
   List<Levels>? levels;
+  List<Word>? words;
 
   Scenarios(
       {this.id,
@@ -70,6 +71,7 @@ class Scenarios {
       this.subTitle,
       this.conversationCompletedScenario,
       this.isLocked,
+      this.words,
       this.levels});
 
   Scenarios.fromJson(Map<String, dynamic> json) {
@@ -92,6 +94,12 @@ class Scenarios {
         levels!.add(Levels.fromJson(v));
       });
     }
+    if (json['words'] != null) {
+      words = <Word>[];
+      json['words'].forEach((v) {
+        words!.add(Word.fromJson(v));
+      });
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -112,6 +120,23 @@ class Scenarios {
       data['levels'] = levels!.map((v) => v.toJson()).toList();
     }
     return data;
+  }
+}
+
+class Word {
+  int? id;
+  String? title;
+  String? image;
+  Word({
+    this.id,
+    this.title,
+    this.image,
+  });
+
+  Word.fromJson(Map<String, dynamic> json) {
+    id = json["id"];
+    title = json["title"];
+    image = json["image"];
   }
 }
 

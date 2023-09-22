@@ -5,6 +5,10 @@ import 'package:talkios/core/constant/api_constant.dart';
 import 'package:talkios/product/conversation/model/chat_model.dart';
 import 'package:talkios/product/conversation/model/conversation_model.dart';
 import 'package:talkios/product/conversation/model/conversation_store_model.dart';
+import 'package:talkios/product/conversation/model/conversation_update_model.dart';
+import 'package:talkios/product/conversation/model/suggest_model.dart';
+import 'package:talkios/product/conversation/model/task_model.dart';
+import 'package:talkios/product/conversation/model/translation_model.dart';
 
 import 'model/conversation_room_model.dart';
 
@@ -47,6 +51,32 @@ class ConversationService {
     return ConversationRoomModel.fromJson(jsonDecode(response.body));
   }
 
+  Future<TaskModel> getAllTasks(String token, int conversationId) async {
+    final response = await http.get(
+        Uri.parse("${ApiConstant.instance.conversationUrl}/$conversationId"),
+        headers: {
+          "Authorization": "Bearer $token",
+        });
+
+    return TaskModel.fromJson(jsonDecode(response.body));
+  }
+
+  Future<TranslationModel> translate(
+    String token, {
+    required int conversationId,
+    required int messageId,
+    required String translateLanguage,
+  }) async {
+    final response = await http.get(
+        Uri.parse(
+            "${ApiConstant.instance.conversationUrl}/$conversationId/message/$messageId?translate=$translateLanguage"),
+        headers: {
+          "Authorization": "Bearer $token",
+        });
+
+    return TranslationModel.fromJson(jsonDecode(response.body));
+  }
+
   Future<List<ChatModel>> sendMessage(
       String token, int conversationId, String message) async {
     final response = await http.post(
@@ -60,8 +90,6 @@ class ConversationService {
         });
 
     Map jsonResponse = json.decode(response.body);
-
-
 
     List<ChatModel> chatList = [];
 
@@ -87,5 +115,35 @@ class ConversationService {
     }
 
     return chatList;
+  }
+
+  Future<SuggestModel> suggestResponse(String token, int conversationId) async {
+    final response = await http.get(
+        Uri.parse(
+            "${ApiConstant.instance.conversationUrl}/$conversationId/suggest-response"),
+        headers: {
+          "Authorization": "Bearer $token",
+        });
+
+    return SuggestModel.fromJson(jsonDecode(response.body));
+  }
+
+  Future<ConversationUpdateModel> conversationUpdate(
+    String token,
+    int conversationId,
+    Map<String, dynamic> body,
+  ) async {
+    final response = await http.put(
+      Uri.parse("${ApiConstant.instance.conversationUrl}/$conversationId"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode(body),
+    );
+
+    print("response : ${response.body}");
+
+    return ConversationUpdateModel.fromJson(jsonDecode(response.body));
   }
 }

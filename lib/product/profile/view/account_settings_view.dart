@@ -3,13 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
 import 'package:talkios/core/view/widget/button/account_button.dart';
+import 'package:talkios/product/profile/model/profile_model.dart';
 import 'package:talkios/product/profile/profile_view_model.dart';
 
 class AccountSettingsView extends BaseStateless {
   final String pageTitle;
+  final ProfileModel profileModel;
   const AccountSettingsView({
     super.key,
     required this.pageTitle,
+    required this.profileModel,
   });
 
   @override
@@ -37,69 +40,103 @@ class AccountSettingsView extends BaseStateless {
           spacer(height: 56.0),
           header(context),
           spacer(height: 26.0),
-          buttons(),
+          buttons(context),
         ],
       ),
     );
   }
 
-  Column buttons() {
-    return Column(
-      children: [
-        AccountButton(
-          label: "Skill Level",
-          onPressed: () {},
-          text: "Intermediate",
-        ),
-        spacer(height: 10.0),
-        AccountButton(
-          label: "Session Length",
-          onPressed: () {},
-          text: "5 minutes",
-        ),
-        spacer(height: 10.0),
-        AccountButton(
-          label: "Listening Exercise",
-          isAvailableCheckbox: true,
-          onPressed: () {},
-        ),
-        spacer(height: 10.0),
-        AccountButton(
-          label: "Sound Effects",
-          isAvailableCheckbox: true,
-          onPressed: () {},
-        ),
-        spacer(height: 10.0),
-        AccountButton(
-          label: "Vibration",
-          isAvailableCheckbox: true,
-          onPressed: () {},
-        ),
-        spacer(height: 10.0),
-        AccountButton(
-          label: "Native Language",
-          onPressed: () {},
-          text: "English(American)",
-        ),
-        spacer(height: 10.0),
-        AccountButton(
-          label: "Notifications",
-          isAvailableCheckbox: true,
-          onPressed: () {},
-        ),
-        spacer(height: 10.0),
-        AccountButton(
-          label: "Practice Reminders",
-          isAvailableCheckbox: true,
-          onPressed: () {},
-        ),
-        spacer(height: 10.0),
-        AccountButton(
-          label: "Time of Reminders",
-          onPressed: () {},
-          text: "11:00",
-        ),
-      ],
+  Consumer buttons(BuildContext context) {
+    return Consumer<ProfileViewModel>(
+      builder: (context, state, child) {
+        return Column(
+          children: [
+            AccountButton(
+              label: "Skill Level",
+              onPressed: () => context.read<ProfileViewModel>().showLevelPicker(
+                    context,
+                    "Level",
+                    profileModel,
+                  ),
+              text: state.skillLevel.isNotEmpty
+                  ? state.skillLevel
+                  : profileModel
+                      .data!.user!.learnLanguages![0].proficiencyLevel!.scale,
+            ),
+            spacer(height: 10.0),
+            AccountButton(
+              label: "Session Length",
+              onPressed: () => context.read<ProfileViewModel>().showLevelPicker(
+                    context,
+                    "Time",
+                    profileModel,
+                  ),
+              text: state.sessionLength.isNotEmpty
+                  ? state.sessionLength
+                  : "${profileModel.data!.user!.userDetail!.sessionLength} minutes",
+            ),
+            spacer(height: 10.0),
+            AccountButton(
+              label: "Listening Exercise",
+              isAvailableCheckbox: true,
+              onPressed: () => state.listenExercise(),
+              checkValue: state.isListenExercise,
+            ),
+            spacer(height: 10.0),
+            AccountButton(
+              label: "Sound Effects",
+              isAvailableCheckbox: true,
+              onPressed: () => state.soundEffect(),
+              checkValue: state.isSoundEffect,
+            ),
+            spacer(height: 10.0),
+            AccountButton(
+              label: "Vibration",
+              isAvailableCheckbox: true,
+              onPressed: () => state.vibration(),
+              checkValue: state.isVibration,
+            ),
+            spacer(height: 10.0),
+            AccountButton(
+              label: "Native Language",
+              onPressed: () => context.read<ProfileViewModel>().showLevelPicker(
+                    context,
+                    "Language",
+                    profileModel,
+                  ),
+              text: state.language.isNotEmpty
+                  ? state.language
+                  : profileModel.data!.user!.nativeLanguage!.title,
+            ),
+            spacer(height: 10.0),
+            AccountButton(
+              label: "Notifications",
+              isAvailableCheckbox: true,
+              onPressed: () => state.notification(),
+              checkValue: state.isNotification,
+            ),
+            spacer(height: 10.0),
+            AccountButton(
+              label: "Practice Reminders",
+              isAvailableCheckbox: true,
+              onPressed: () => state.reminder(),
+              checkValue: state.isReminder,
+            ),
+            spacer(height: 10.0),
+            AccountButton(
+              label: "Time of Reminders",
+              onPressed: () => context.read<ProfileViewModel>().showLevelPicker(
+                    context,
+                    "Practice",
+                    profileModel,
+                  ),
+              text: state.practice.isNotEmpty
+                  ? state.practice
+                  : profileModel.data!.user!.userDetail!.timeOfReminder,
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -112,9 +149,12 @@ class AccountSettingsView extends BaseStateless {
           type: MaterialType.transparency,
           child: IconButton(
             onPressed: () {
-              context
-                  .read<ProfileViewModel>()
-                  .handleButtonPressed(context, -1, pageTitle);
+              context.read<ProfileViewModel>().handleButtonPressed(
+                    context,
+                    -1,
+                    pageTitle,
+                    profileModel: profileModel,
+                  );
               HapticFeedback.heavyImpact();
               back(context);
             },

@@ -1,10 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:provider/provider.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
+import 'package:talkios/product/conversation/view/conversation_view.dart';
+
+import '../../../util/provider/sound/dubbing_provider.dart';
 
 class HeaderMenu extends BaseStateless {
-  const HeaderMenu({Key? key}) : super(key: key);
+  final String userProfilePhoto;
+  final String scenarioName;
+  final int score;
+  const HeaderMenu({
+    super.key,
+    required this.userProfilePhoto,
+    required this.scenarioName,
+    required this.score,
+  });
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -17,8 +29,17 @@ class HeaderMenu extends BaseStateless {
               type: MaterialType.transparency,
               child: IconButton(
                 onPressed: () {
+                  context.read<DubbingProvider>().stop();
                   HapticFeedback.heavyImpact();
-                  back(context);
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (context) => ConversationView(
+                        score: score,
+                        userProfilePhoto: userProfilePhoto,
+                      ),
+                    ),
+                    (Route<dynamic> route) => false,
+                  );
                 },
                 icon: Icon(icon.arrowBack),
               ),
@@ -29,7 +50,7 @@ class HeaderMenu extends BaseStateless {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Movie Theater",
+                  scenarioName,
                   style: currentTextTheme(context).bodyLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: color.dark100,
@@ -57,7 +78,7 @@ class HeaderMenu extends BaseStateless {
             SvgPicture.asset(icon.star),
             spacer(width: 8.0),
             Text(
-              "957",
+              score.toString(),
               style: currentTextTheme(context).bodyLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: color.dark100,

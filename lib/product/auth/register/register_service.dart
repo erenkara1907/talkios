@@ -15,14 +15,15 @@ class RegisterService {
     return RegisterModel.fromJson(jsonDecode(response.body));
   }
 
-  Future<ProfileUpdateModel> updateProfileInfo(
-      String token, Map<String, dynamic> userInfo) async {
-    final response = await http.post(Uri.parse(ApiConstant.instance.profilUrl),
-        body: userInfo,
-        headers: {
-          "Authorization": "Bearer $token",
-        });
-
+  Future updateProfileInfo(String token, Map<String, dynamic> userInfo) async {
+    final response = await http.post(
+      Uri.parse(ApiConstant.instance.profilUrl),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode(userInfo),
+    );
 
     return ProfileUpdateModel.fromJson(jsonDecode(response.body));
   }

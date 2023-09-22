@@ -7,9 +7,9 @@ import 'package:talkios/core/enum/preference_keys.dart';
 import 'package:talkios/product/auth/register/view/pagination_view.dart';
 import 'package:talkios/product/home/home_service.dart';
 import 'package:talkios/product/profile/model/profile_model.dart';
+import 'package:talkios/product/vocabulary/vocabulary_view.dart';
 
 import '../conversation/conversation_service.dart';
-import '../conversation/view/conversation_room_view.dart';
 import 'model/scenario_model.dart';
 
 class HomeViewModel extends ChangeNotifier {
@@ -72,6 +72,10 @@ class HomeViewModel extends ChangeNotifier {
 
     if (response.result!) {
       profileModel = response;
+      CacheManager().setString(
+        PreferencesKeys.LANGUAGE.toString(),
+        response.data!.user!.nativeLanguage!.title!.toString(),
+      );
     } else {
       print("Hata oluştu");
     }
@@ -82,6 +86,10 @@ class HomeViewModel extends ChangeNotifier {
     String scenarioId,
     String aiProfilePhoto,
     String userProfilePhoto,
+    List<Word> words,
+    String scenarioName,
+    String level,
+    int score,
   ) async {
     String? _token = CacheManager().getString(PreferencesKeys.TOKEN.toString());
     final respoonse =
@@ -91,15 +99,20 @@ class HomeViewModel extends ChangeNotifier {
       Future.delayed(
         const Duration(milliseconds: 300),
         () {
-          Navigator.push(
-            context,
+
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
-              builder: (context) => ConversationRoomView(
+              builder: (context) => VocabularyView(
+                score: score,
+                words: words,
                 aiProfilePhoto: aiProfilePhoto,
                 userProfilePhoto: userProfilePhoto,
                 conversationId: respoonse.data!.conversation!.id!,
+                level: level,
+                scenarioName: scenarioName,
               ),
             ),
+            (Route<dynamic> route) => false,
           );
         },
       );

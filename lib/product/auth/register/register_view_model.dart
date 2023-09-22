@@ -21,6 +21,8 @@ import 'package:talkios/product/auth/register/view/pagination_view.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
+import 'model/interest_model.dart';
+
 class RegisterViewModel extends ChangeNotifier {
   // Service
   RegisterService service = RegisterService();
@@ -79,14 +81,23 @@ class RegisterViewModel extends ChangeNotifier {
   double _completeValue = 0.0;
   double get completeValue => _completeValue;
 
-  String _interestValue = "";
-  String get interestValue => _interestValue;
-
   String _languageCode = "en";
   String get languageCode => _languageCode;
 
+  String _levelCode = "A1";
+  String get levelCode => _levelCode;
+
+  int _targetId = 1;
+  int get targetId => _targetId;
+
+  String _selectedTime = "5";
+  String get selectedTime => _selectedTime;
+
   bool _isTap = false;
   bool get isTap => _isTap;
+
+  final List<int> _selectedInterestItems = [];
+  List<int> get selectedInterestItems => _selectedInterestItems;
 
   List<LanguageModel> languages = [
     LanguageModel(
@@ -146,26 +157,45 @@ class RegisterViewModel extends ChangeNotifier {
   ];
 
   List<EnglishLevelModel> englishLevels = [
-    EnglishLevelModel(text: "None"),
-    EnglishLevelModel(text: "I know a little"),
-    EnglishLevelModel(text: "I know well"),
+    EnglishLevelModel(text: "Beginner", code: "A1"),
+    EnglishLevelModel(text: "Basic knowledge", code: "A2"),
+    EnglishLevelModel(text: "Conversational", code: "B1"),
+    EnglishLevelModel(text: "Fluent", code: "B2"),
+    EnglishLevelModel(text: "Advanced", code: "C1"),
+    EnglishLevelModel(text: "Mastery", code: "C2"),
   ];
 
   List<TargetModel> targets = [
-    TargetModel(text: "Learn at basic level"),
-    TargetModel(text: "Be able to chat in english"),
-    TargetModel(text: "Watch movies in english"),
-    TargetModel(text: "I know culture"),
-    TargetModel(text: "Communicating with people"),
-    TargetModel(text: "Be able to talk at work"),
-    TargetModel(text: "Be successful in exams"),
-    TargetModel(text: "To speak more fluently"),
+    TargetModel(text: "Learn at basic level", id: 1),
+    TargetModel(text: "Be able to chat in english", id: 2),
+    TargetModel(text: "Watch movies in english", id: 3),
+    TargetModel(text: "I know culture", id: 4),
+    TargetModel(text: "Communicating with people", id: 5),
+    TargetModel(text: "Be able to talk at work", id: 6),
+    TargetModel(text: "Be successful in exams", id: 7),
+    TargetModel(text: "To speak more fluently", id: 8),
   ];
 
   List<TimeModel> times = [
-    TimeModel(text: "5 minutes a day"),
-    TimeModel(text: "10 minutes a day"),
-    TimeModel(text: "15 minutes or more"),
+    TimeModel(text: "5 minutes a day", time: "5"),
+    TimeModel(text: "10 minutes a day", time: "10"),
+    TimeModel(text: "15 minutes or more", time: "15"),
+  ];
+
+  List<InterestModel> interests = [
+    InterestModel(id: 1, text: "Trip"),
+    InterestModel(id: 2, text: "Food"),
+    InterestModel(id: 3, text: "Nature"),
+    InterestModel(id: 4, text: "Technology"),
+    InterestModel(id: 5, text: "Languages"),
+    InterestModel(id: 6, text: "Fashion"),
+    InterestModel(id: 7, text: "Animals"),
+    InterestModel(id: 8, text: "Culture"),
+    InterestModel(id: 9, text: "Shopping"),
+    InterestModel(id: 10, text: "Music"),
+    InterestModel(id: 11, text: "Game"),
+    InterestModel(id: 12, text: "Sport"),
+    InterestModel(id: 13, text: "Health"),
   ];
 
   // Controller
@@ -225,6 +255,24 @@ class RegisterViewModel extends ChangeNotifier {
     }
   }
 
+  void addItem(int item) {
+    if (!_selectedInterestItems.contains(item)) {
+      _selectedInterestItems.add(item);
+      notifyListeners();
+    }
+  }
+
+  void removeItem(int item) {
+    if (_selectedInterestItems.contains(item)) {
+      _selectedInterestItems.remove(item);
+      notifyListeners();
+    }
+  }
+
+  bool get buttonFillPercentage {
+    return _selectedInterestItems.isEmpty ? false : true;
+  }
+
   void tapButton() {
     _isTap = !_isTap;
     notifyListeners();
@@ -235,8 +283,18 @@ class RegisterViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void changeInterestValue(String value) {
-    _interestValue = value;
+  void changeLevelCode(String code) {
+    _levelCode = code;
+    notifyListeners();
+  }
+
+  void changeTargetId(int id) {
+    _targetId = id;
+    notifyListeners();
+  }
+
+  void changeTime(String time) {
+    _selectedTime = time;
     notifyListeners();
   }
 

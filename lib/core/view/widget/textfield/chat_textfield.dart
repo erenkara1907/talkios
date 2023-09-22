@@ -3,13 +3,17 @@ import 'package:provider/provider.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
 import 'package:talkios/product/conversation/viewmodel/conversation_room_view_model.dart';
 
+import '../../../util/provider/sound/dubbing_provider.dart';
+
 class ChatTextField extends BaseStateless {
   final TextEditingController controller;
   final FocusNode focusNode;
+  final String hintText;
   const ChatTextField({
     super.key,
     required this.controller,
     required this.focusNode,
+    required this.hintText,
   });
 
   @override
@@ -19,6 +23,12 @@ class ChatTextField extends BaseStateless {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18.0),
         child: TextFormField(
+          onTap: () {
+            context.read<DubbingProvider>().stop(); // Stop Dubbing
+            context
+                .read<ConversationRoomViewModel>()
+                .sendAutomaticMessage(false);
+          },
           onChanged: (value) {
             if (value.isNotEmpty) {
               context
@@ -47,7 +57,7 @@ class ChatTextField extends BaseStateless {
               bottom: 20.0,
               right: 60.0,
             ),
-            hintText: "Ask anything",
+            hintText: hintText,
             hintStyle: currentTextTheme(context).bodyLarge?.copyWith(
                   fontWeight: FontWeight.w400,
                   color: color.dark20,

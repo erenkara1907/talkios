@@ -29,6 +29,11 @@ class AppButton extends BaseStateless {
       height: heightValue,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
+          shadowColor: Colors.transparent,
+          foregroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          disabledBackgroundColor: Colors.transparent,
+          disabledForegroundColor: Colors.transparent,
           backgroundColor: backgroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),
@@ -42,7 +47,13 @@ class AppButton extends BaseStateless {
               )
             : Text(
                 text,
-                style: textStyle ?? const TextStyle(),
+                style: textStyle ??
+                    currentTextTheme(context).bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: color.background,
+                          fontSize: 14.0,
+                          fontFamily: font.regular,
+                        ),
               ),
       ),
     );

@@ -34,13 +34,22 @@ class LoginViewModel extends ChangeNotifier {
   Future login(BuildContext context, Map<String, dynamic> userInfo) async {
     final response = await service.login(userInfo);
 
-    if (response.result!) {
-      String _token = response.data!.token!;
-      CacheManager().setString(PreferencesKeys.TOKEN.toString(), _token);
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => HomeView()),
-        (Route<dynamic> route) => false,
-      );
+    if (response.result != null) {
+      if (response.result!) {
+        String _token = response.data!.token!;
+        CacheManager().setString(PreferencesKeys.TOKEN.toString(), _token);
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => HomeView()),
+          (Route<dynamic> route) => false,
+        );
+      } else {
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.error(
+            message: "Email or password is incorrect",
+          ),
+        );
+      }
     } else {
       showTopSnackBar(
         Overlay.of(context),

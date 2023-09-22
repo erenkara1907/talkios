@@ -1,14 +1,18 @@
 // ignore_for_file: use_key_in_widget_constructors, must_be_immutable
 
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
 import 'package:talkios/product/conversation/view/conversation_view.dart';
 import 'package:talkios/product/home/home_view_model.dart';
 import 'package:talkios/product/home/view/scenario_detail_view.dart';
 
+import '../../../core/util/provider/image/image_upload_view_model.dart';
 import '../../../core/view/widget/button/app_button.dart';
 import '../../profile/view/profile_view.dart';
 
@@ -212,6 +216,8 @@ class HomeView extends BaseStateless {
                         onPressed: () => push(
                           context,
                           ConversationView(
+                            score: viewModel
+                                .profileModel.data!.user!.userDetail!.score!,
                             userProfilePhoto: viewModel
                                 .profileModel.data!.user!.profilePhoto!,
                           ),
@@ -238,88 +244,123 @@ class HomeView extends BaseStateless {
   Widget scenarioButton(BuildContext context, int index) {
     return Stack(
       children: [
-        SizedBox(
-          width: width(context: context, value: 0.8),
-          height: 128.0,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              elevation: 0,
-              backgroundColor: color.background,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-                side: const BorderSide(
-                  width: 1.0,
-                  color: Color.fromRGBO(243, 243, 245, 1),
+        AnimatedOpacity(
+          duration: const Duration(milliseconds: 300),
+          opacity: viewModel.scenarios[index].isLocked == 0 ? 1.0 : 0.1,
+          child: AbsorbPointer(
+            absorbing: viewModel.scenarios[index].isLocked == 0 ? false : true,
+            child: SizedBox(
+              width: width(context: context, value: 0.8),
+              height: 128.0,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  backgroundColor: color.background,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                    side: const BorderSide(
+                      width: 1.0,
+                      color: Color.fromRGBO(243, 243, 245, 1),
+                    ),
+                  ),
+                ),
+                onPressed: () {
+                  push(
+                    context,
+                    ScenarioDetailView(
+                      score:
+                          viewModel.profileModel.data!.user!.userDetail!.score!,
+                      scenarioName: viewModel.scenarios[index].title!,
+                      level: "${index + 1}",
+                      words: viewModel.scenarios[index].words!,
+                      userProfilePhoto:
+                          viewModel.profileModel.data!.user!.profilePhoto!,
+                      aiProfilePhoto: viewModel.scenarios[index].photo!,
+                      scenarioId: viewModel.scenarios[index].id!,
+                      tagId: "aiProfilePhoto${viewModel.scenarios[index].id}",
+                      subTitle: viewModel.scenarios[index].subTitle!,
+                      scenarioDescription: viewModel.scenarios[index].scenario!,
+                    ),
+                  );
+                },
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 16.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Level ${index + 1}",
+                            style:
+                                currentTextTheme(context).bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                      color: color.dark60,
+                                      fontSize: 12.0,
+                                      fontFamily: font.regular,
+                                    ),
+                          ),
+                          spacer(height: 6.0),
+                          Text(
+                            viewModel.scenarios[index].title!,
+                            style:
+                                currentTextTheme(context).bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                      color: color.dark100,
+                                      fontSize: 16.0,
+                                      fontFamily: font.semiBold,
+                                    ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Hero(
+                      tag: "aiProfilePhoto${viewModel.scenarios[index].id}",
+                      child: Container(
+                        width: 106.0,
+                        height: 106.0,
+                        decoration: BoxDecoration(
+                          image: DecorationImage(
+                            image: CachedNetworkImageProvider(
+                                viewModel.scenarios[index].photo!),
+                            fit: BoxFit.cover,
+                          ),
+                          borderRadius: BorderRadius.circular(
+                            6.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            onPressed: () {
-              push(
-                context,
-                ScenarioDetailView(
-                  userProfilePhoto:
-                      viewModel.profileModel.data!.user!.profilePhoto!,
-                  aiProfilePhoto: viewModel.scenarios[index].photo!,
-                  scenarioId: viewModel.scenarios[index].id!,
-                  tagId: "subTitle${viewModel.scenarios[index].id}",
-                  subTitle: viewModel.scenarios[index].subTitle!,
-                  scenarioDescription: viewModel.scenarios[index].scenario!,
-                ),
-              );
-            },
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 16.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Level ${index + 1}",
-                        style: currentTextTheme(context).bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: color.dark60,
-                              fontSize: 12.0,
-                              fontFamily: font.regular,
-                            ),
-                      ),
-                      spacer(height: 6.0),
-                      Hero(
-                        tag: "subTitle${viewModel.scenarios[index].id}",
-                        child: Text(
-                          viewModel.scenarios[index].title!,
-                          style: currentTextTheme(context).bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w500,
-                                color: color.dark100,
-                                fontSize: 16.0,
-                                fontFamily: font.semiBold,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 106.0,
-                  height: 106.0,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: CachedNetworkImageProvider(
-                          viewModel.scenarios[index].photo!),
-                      fit: BoxFit.cover,
-                    ),
-                    borderRadius: BorderRadius.circular(
-                      6.0,
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
+        viewModel.scenarios[index].isLocked == 0
+            ? const Center()
+            : Positioned.fill(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SvgPicture.asset(icon.lock),
+                    spacer(height: 10.0),
+                    Text(
+                      "Complete level $index to unlock.",
+                      style: currentTextTheme(context).bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: color.dark60,
+                            fontSize: 14.0,
+                            fontFamily: font.medium,
+                          ),
+                    )
+                  ],
+                ),
+              ),
       ],
     );
   }
@@ -342,7 +383,7 @@ class HomeView extends BaseStateless {
             spacer(width: 12.0),
             headerChip(
               context,
-              "957",
+              viewModel.profileModel.data!.user!.userDetail!.score!.toString(),
               icon.star,
               color.yellow.withOpacity(0.3),
               color.yellow,
@@ -355,18 +396,29 @@ class HomeView extends BaseStateless {
             push(
               context,
               ProfileView(
+                profileModel: viewModel.profileModel,
                 profilePhoto: viewModel.profileModel.data!.user!.profilePhoto!,
                 name: viewModel.profileModel.data!.user!.name!,
               ),
             );
           },
-          child: Hero(
-            tag: 'profilePhoto',
-            child: CircleAvatar(
-              radius: 20.0,
-              backgroundImage: CachedNetworkImageProvider(
-                  viewModel.profileModel.data!.user!.profilePhoto!),
-            ),
+          child: Selector<ImageUploadViewModel, File?>(
+            builder: (context, photo, child) {
+              return Hero(
+                tag: "profilePhoto",
+                child: photo == null
+                    ? CircleAvatar(
+                        radius: 20.0,
+                        backgroundImage: CachedNetworkImageProvider(
+                            viewModel.profileModel.data!.user!.profilePhoto!),
+                      )
+                    : CircleAvatar(
+                        radius: 20.0,
+                        backgroundImage: FileImage(photo),
+                      ),
+              );
+            },
+            selector: (context, state) => state.uploadedImageUrl,
           ),
         ),
       ],

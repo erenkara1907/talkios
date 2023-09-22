@@ -51,6 +51,9 @@ class TimeView extends BaseStateless {
                         onPressed: () {
                           Provider.of<RegisterViewModel>(context, listen: false)
                               .setIndexToTimeButton(index);
+                          context
+                              .read<RegisterViewModel>()
+                              .changeTime(time[index].time);
                           Future.delayed(
                             const Duration(milliseconds: 650),
                             () {

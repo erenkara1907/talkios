@@ -9,14 +9,17 @@ import 'package:talkios/core/view/base/base_stateless.dart';
 import 'package:talkios/core/view/widget/button/app_button.dart';
 import 'package:talkios/product/conversation/view/conversation_room_view.dart';
 import 'package:talkios/product/conversation/viewmodel/conversation_view_model.dart';
+import 'package:talkios/product/home/view/home_view.dart';
 
 class ConversationView extends BaseStateless {
   ConversationViewModel viewModel = ConversationViewModel();
   final String userProfilePhoto;
+  final int score;
 
   ConversationView({
     super.key,
     required this.userProfilePhoto,
+    required this.score,
   });
   @override
   Widget build(BuildContext context) {
@@ -43,11 +46,11 @@ class ConversationView extends BaseStateless {
             fit: BoxFit.cover,
           ),
         ),
-        Shimmer.fromColors(
-          baseColor: color.dark10,
-          highlightColor: color.dark30,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 33.0),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 33.0),
+          child: Shimmer.fromColors(
+            baseColor: color.dark10,
+            highlightColor: color.dark30,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,6 +190,9 @@ class ConversationView extends BaseStateless {
                   push(
                     context,
                     ConversationRoomView(
+                        score: score,
+                        scenarioName:
+                            viewModel.conversations[index].scenario!.title!,
                         aiProfilePhoto:
                             viewModel.conversations[index].scenario!.icon!,
                         userProfilePhoto: userProfilePhoto,
@@ -269,6 +275,9 @@ class ConversationView extends BaseStateless {
                         onPressed: () => push(
                           context,
                           ConversationRoomView(
+                              score: score,
+                              scenarioName: viewModel
+                                  .conversations[index].scenario!.title!,
                               aiProfilePhoto: viewModel
                                   .conversations[index].scenario!.icon!,
                               userProfilePhoto: userProfilePhoto,
@@ -299,7 +308,7 @@ class ConversationView extends BaseStateless {
           child: IconButton(
             onPressed: () {
               HapticFeedback.heavyImpact();
-              back(context);
+              push(context, HomeView());
             },
             icon: Icon(icon.arrowBack),
           ),

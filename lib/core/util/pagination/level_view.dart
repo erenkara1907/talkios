@@ -52,6 +52,9 @@ class LevelView extends BaseStateless {
                         onPressed: () {
                           Provider.of<RegisterViewModel>(context, listen: false)
                               .setIndexToLevelButton(index);
+                          context
+                              .read<RegisterViewModel>()
+                              .changeLevelCode(level[index].code);
                           Future.delayed(
                             const Duration(milliseconds: 650),
                             () {

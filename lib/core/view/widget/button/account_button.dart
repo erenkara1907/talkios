@@ -7,12 +7,14 @@ class AccountButton extends BaseStateless {
   final String? text;
   final void Function() onPressed;
   final bool? isAvailableCheckbox;
+  final bool? checkValue;
   const AccountButton({
     super.key,
     required this.label,
     this.text,
     required this.onPressed,
     this.isAvailableCheckbox = false,
+    this.checkValue,
   });
   @override
   Widget build(BuildContext context) {
@@ -51,7 +53,7 @@ class AccountButton extends BaseStateless {
                     child: Transform.scale(
                       scale: 0.7,
                       child: CupertinoSwitch(
-                        value: true,
+                        value: checkValue ?? false,
                         onChanged: (_) {},
                         activeColor: color.cyan,
                       ),

@@ -10,19 +10,22 @@ import 'package:talkios/core/view/base/base_stateless.dart';
 import 'package:talkios/core/view/widget/textfield/chat_textfield.dart';
 import 'package:talkios/product/conversation/viewmodel/conversation_room_view_model.dart';
 
-import '../../../util/provider/speech_provider.dart';
+import '../../../util/provider/sound/dubbing_provider.dart';
+import '../../../util/provider/sound/speech_provider.dart';
 
 class InputMenu extends BaseStateless {
   final TextEditingController controller;
   final FocusNode focusNode;
   final void Function() sendMessage;
   final int conversationId;
+  final String hintText;
   InputMenu({
     super.key,
     required this.controller,
     required this.focusNode,
     required this.sendMessage,
     required this.conversationId,
+    required this.hintText,
   });
 
   AudioPlayer player = AudioPlayer();
@@ -35,7 +38,11 @@ class InputMenu extends BaseStateless {
         Container(
           height: height(context: context, value: 0.09),
         ),
-        ChatTextField(controller: controller, focusNode: focusNode),
+        ChatTextField(
+          controller: controller,
+          focusNode: focusNode,
+          hintText: hintText,
+        ),
         Selector<ConversationRoomViewModel, bool>(
           builder: (context, isEmpty, child) {
             return Positioned(
@@ -48,6 +55,9 @@ class InputMenu extends BaseStateless {
                   child: IconButton(
                     onPressed: !isEmpty
                         ? () {
+                            context
+                                .read<DubbingProvider>()
+                                .stop(); // Stop Dubbing
                             context
                                 .read<ConversationRoomViewModel>()
                                 .changeEmptyTextStatus(true);
@@ -124,12 +134,14 @@ class InputMenu extends BaseStateless {
             type: MaterialType.transparency,
             child: GestureDetector(
               onTap: () async {
+                context.read<DubbingProvider>().stop(); // Stop Dubbing
                 await player.play(AssetSource(sound.voiceButton));
                 context.read<ConversationRoomViewModel>().showWarning();
                 Provider.of<SpeechProvider>(context, listen: false)
                     .getPermissionAndStartListening(context);
               },
               onLongPress: () async {
+                context.read<DubbingProvider>().stop(); // Stop Dubbing
                 await player.play(AssetSource(sound.voiceButton));
                 await player.play(AssetSource(sound.voiceButton));
                 HapticFeedback.heavyImpact();
@@ -149,17 +161,23 @@ class InputMenu extends BaseStateless {
                     provider
                         .voiceText(context.read<SpeechProvider>().lastWords);
                     provider.changeEmptyTextStatus(false);
+                    provider.sendAutomaticMessage(true);
                     Future.delayed(
                       const Duration(seconds: 1),
                       () async {
-                        context
-                            .read<ConversationRoomViewModel>()
-                            .changeEmptyTextStatus(true);
-                        provider.addToChatList(provider.askController.text);
-                        await provider.sendMessage(
-                          message: context.read<SpeechProvider>().lastWords,
-                          conversationId: conversationId,
-                        );
+                        if (provider.isSendAutomaticMessage) {
+                          context
+                              .read<ConversationRoomViewModel>()
+                              .changeEmptyTextStatus(true);
+                          provider.addToChatList(provider.askController.text);
+                          if (provider.askController.text.isNotEmpty) {
+                            await provider.sendMessage(
+                              context,
+                              message: context.read<SpeechProvider>().lastWords,
+                              conversationId: conversationId,
+                            );
+                          }
+                        }
                       },
                     );
                   },

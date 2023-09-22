@@ -52,6 +52,9 @@ class TargetView extends BaseStateless {
                         onPressed: () {
                           Provider.of<RegisterViewModel>(context, listen: false)
                               .setIndexToTargetButton(index);
+                          context
+                              .read<RegisterViewModel>()
+                              .changeTargetId(target[index].id);
                           Future.delayed(
                             const Duration(milliseconds: 650),
                             () {
