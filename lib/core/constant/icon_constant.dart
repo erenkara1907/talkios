@@ -43,4 +43,7 @@ class IconConstant {
   String chinaFlag = '$asset' 'china_flag.svg';
   String saudiFlag = '$asset' 'saudi_flag.svg';
   String russianFlag = '$asset' 'russian_flag.svg';
+  String lockScenario = '$asset' 'lock_scenario.svg';
+  String kite = '$asset' 'kite.svg';
+  String speak = '$asset' 'speak.svg';
 }

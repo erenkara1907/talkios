@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:talkios/core/util/provider/time_provider.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
@@ -28,7 +29,7 @@ class PracticeView extends BaseStateless {
                           ? 40.0
                           : 60.0,
               duration: const Duration(milliseconds: 300),
-              child: Image.asset(image.practice),
+              child: SvgPicture.asset(image.practice),
             );
           },
           selector: (context, state) => state.currentSliderValue,

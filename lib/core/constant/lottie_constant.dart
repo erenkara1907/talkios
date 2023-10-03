@@ -11,4 +11,8 @@ class LottieConstant {
 
   String loadingMessage = "$asset" "loading_message.json";
   String emptyState = "$asset" "empty_state.json";
+  String loading = "$asset" "loading.json";
+  String swipe = "$asset" "swipe.json";
+  String networkError = "$asset" "network_error.json";
+  String pronunciationLoading = "$asset" "pronunciation_loading.json";
 }

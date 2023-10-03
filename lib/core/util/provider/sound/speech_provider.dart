@@ -11,11 +11,12 @@ class SpeechProvider with ChangeNotifier {
   bool _isRecord = false;
   bool get isRecord => _isRecord;
 
-  void record() {
-    _isRecord = !_isRecord;
+  void record(bool value) {
+    _isRecord = value;
   }
 
   Future<void> getPermissionAndStartListening(BuildContext context) async {
+    await Permission.microphone.request();
     PermissionStatus permissionStatus = await Permission.microphone.status;
 
     if (permissionStatus.isGranted) {
@@ -23,7 +24,7 @@ class SpeechProvider with ChangeNotifier {
     } else {
       permissionStatus = await Permission.microphone.request();
 
-      if (permissionStatus.isPermanentlyDenied) {
+      if (permissionStatus.isDenied) {
         // The user opted to never again see the permission request dialog for this
         // app. The only way to change the permission's status now is to let the
         // user manually enable it from the system settings.
@@ -63,13 +64,16 @@ class SpeechProvider with ChangeNotifier {
     }
   }
 
-  Future<void> startListening() async {
-    bool available = await speech.initialize(
+  bool available = false;
+
+  Future<void> initialize() async {
+    available = await speech.initialize(
       onError: (val) => print('Error: $val'),
       onStatus: (val) => print('Status: $val'),
     );
+  }
 
-    print("availble : $available");
+  Future<void> startListening() async {
     if (available) {
       await speech.listen(
         onResult: (val) {
@@ -77,7 +81,17 @@ class SpeechProvider with ChangeNotifier {
           notifyListeners();
         },
       );
-      print("lastWord : $lastWords");
+    } else {
+      await speech.initialize(
+        onError: (val) => print('Error: $val'),
+        onStatus: (val) => print('Status: $val'),
+      );
+      await speech.listen(
+        onResult: (val) {
+          lastWords = val.recognizedWords;
+          notifyListeners();
+        },
+      );
     }
   }
 

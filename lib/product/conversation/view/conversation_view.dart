@@ -4,12 +4,16 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
 import 'package:talkios/core/view/widget/button/app_button.dart';
 import 'package:talkios/product/conversation/view/conversation_room_view.dart';
+import 'package:talkios/product/conversation/viewmodel/conversation_room_view_model.dart';
 import 'package:talkios/product/conversation/viewmodel/conversation_view_model.dart';
 import 'package:talkios/product/home/view/home_view.dart';
+
+import '../../../core/util/connectivity_service.dart';
 
 class ConversationView extends BaseStateless {
   ConversationViewModel viewModel = ConversationViewModel();
@@ -21,8 +25,19 @@ class ConversationView extends BaseStateless {
     required this.userProfilePhoto,
     required this.score,
   });
+
   @override
   Widget build(BuildContext context) {
+    return Provider.of<ConnectivityService>(context, listen: true)
+                .connectionStatus ==
+            ConnectionStatus.Online
+        ? conversationView()
+        : Center(
+            child: Lottie.asset(lottie.networkError),
+          );
+  }
+
+  FutureBuilder<dynamic> conversationView() {
     return FutureBuilder(
       future: viewModel.getAllConversation(),
       builder: (context, snapshot) {
@@ -187,9 +202,11 @@ class ConversationView extends BaseStateless {
                       borderRadius: BorderRadius.circular(10.0),
                     )),
                 onPressed: () {
+                  context.read<ConversationRoomViewModel>().continueChat(false);
                   push(
                     context,
                     ConversationRoomView(
+                        fromWhere: "",
                         score: score,
                         scenarioName:
                             viewModel.conversations[index].scenario!.title!,
@@ -272,18 +289,24 @@ class ConversationView extends BaseStateless {
                         ],
                       ),
                       IconButton(
-                        onPressed: () => push(
-                          context,
-                          ConversationRoomView(
-                              score: score,
-                              scenarioName: viewModel
-                                  .conversations[index].scenario!.title!,
-                              aiProfilePhoto: viewModel
-                                  .conversations[index].scenario!.icon!,
-                              userProfilePhoto: userProfilePhoto,
-                              conversationId:
-                                  viewModel.conversations[index].id!),
-                        ),
+                        onPressed: () {
+                          context
+                              .read<ConversationRoomViewModel>()
+                              .continueChat(false);
+                          push(
+                            context,
+                            ConversationRoomView(
+                                fromWhere: "",
+                                score: score,
+                                scenarioName: viewModel
+                                    .conversations[index].scenario!.title!,
+                                aiProfilePhoto: viewModel
+                                    .conversations[index].scenario!.icon!,
+                                userProfilePhoto: userProfilePhoto,
+                                conversationId:
+                                    viewModel.conversations[index].id!),
+                          );
+                        },
                         icon: Icon(icon.arrowForward),
                         color: color.dark100,
                       ),

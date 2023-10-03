@@ -27,8 +27,10 @@ class Data {
 
 class Conversation {
   List<CompletedTask>? completedTasks;
+  List<Word>? words;
   Conversation({
     this.completedTasks,
+    this.words,
   });
 
   Conversation.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,38 @@ class Conversation {
         completedTasks!.add(CompletedTask.fromJson(v));
       });
     }
+    if (json['words'] != null) {
+      words = <Word>[];
+      json['words'].forEach((v) {
+        words!.add(Word.fromJson(v));
+      });
+    }
+  }
+}
+
+class Word {
+  int? id;
+  String? title;
+  String? image;
+  int? scenarioId;
+  String? version;
+  bool? isCompleted;
+
+  Word(
+      {this.id,
+      this.title,
+      this.image,
+      this.scenarioId,
+      this.version,
+      this.isCompleted});
+
+  Word.fromJson(Map<String, dynamic> json) {
+    id = json['id'];
+    title = json['title'];
+    image = json['image'];
+    scenarioId = json['scenario_id'];
+    version = json['version'];
+    isCompleted = json['is_completed'];
   }
 }
 

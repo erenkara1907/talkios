@@ -9,16 +9,18 @@ import 'package:shimmer/shimmer.dart';
 import 'package:talkios/core/view/base/base_state.dart';
 import 'package:talkios/core/view/widget/button/app_button.dart';
 import 'package:talkios/core/view/widget/card/chat_card.dart';
-import 'package:talkios/core/view/widget/card/menu_card.dart';
+import 'package:talkios/core/view/widget/menu/bottom_menu.dart';
 import 'package:talkios/core/view/widget/menu/header_menu.dart';
-import 'package:talkios/core/view/widget/menu/input_menu.dart';
 import 'package:talkios/product/conversation/model/chat_model.dart';
-import 'package:talkios/product/conversation/model/task_model.dart';
+import 'package:talkios/product/conversation/viewmodel/bottom_menu_view_model.dart';
 import 'package:talkios/product/conversation/viewmodel/conversation_room_view_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
+import '../../../core/constant/config_constant.dart';
+import '../../../core/util/connectivity_service.dart';
 import '../../../core/util/provider/sound/dubbing_provider.dart';
+import '../../../core/view/widget/menu/input_menu.dart';
 
 class ConversationRoomView extends StatefulWidget {
   final int conversationId;
@@ -26,6 +28,7 @@ class ConversationRoomView extends StatefulWidget {
   final String aiProfilePhoto;
   final String scenarioName;
   final int score;
+  final String fromWhere;
 
   const ConversationRoomView({
     Key? key,
@@ -34,6 +37,7 @@ class ConversationRoomView extends StatefulWidget {
     required this.aiProfilePhoto,
     required this.scenarioName,
     required this.score,
+    required this.fromWhere,
   }) : super(key: key);
 
   @override
@@ -43,7 +47,10 @@ class ConversationRoomView extends StatefulWidget {
 class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
   ConversationRoomViewModel viewModel = ConversationRoomViewModel();
   late Future<void> messagesFuture;
+
   final ScrollController scrollController = ScrollController();
+  DubbingProvider dubbingProvider = DubbingProvider();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -55,37 +62,80 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
 
   @override
   Widget build(BuildContext context) {
+    return Provider.of<ConnectivityService>(context, listen: true)
+                .connectionStatus ==
+            ConnectionStatus.Online
+        ? conversationRoomView()
+        : Center(
+            child: Lottie.asset(lottie.networkError),
+          );
+  }
+
+  GestureDetector conversationRoomView() {
     return GestureDetector(
       onTap: () => viewModel.deFocus(),
       child: Scaffold(
-        body: Stack(
-          children: [
-            Positioned.fill(
-              child: Image.asset(
-                image.background,
-                fit: BoxFit.cover,
-              ),
-            ),
-            Consumer<ConversationRoomViewModel>(
-              builder: (context, chatProvider, child) {
-                return FutureBuilder(
-                  future: messagesFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return loadingState();
-                    } else if (snapshot.connectionState ==
-                        ConnectionState.done) {
-                      return conversationRoom(context, chatProvider);
-                    } else {
-                      return const Text("Error");
-                    }
+        key: _scaffoldKey,
+        body: Selector<ConversationRoomViewModel, bool>(
+          builder: (context, firstConversation, child) {
+            return Stack(
+              children: [
+                noFirstConversation(),
+                Selector<ConversationRoomViewModel, bool>(
+                  builder: (context, isFirst, child) {
+                    return isFirst
+                        ? Positioned.fill(
+                            child: AnimatedOpacity(
+                              opacity: isFirst ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 300),
+                              child: InkWell(
+                                onTap: isFirst
+                                    ? () => context
+                                        .read<ConversationRoomViewModel>()
+                                        .changeStatusFirstConversation(false)
+                                    : () {},
+                                child: Image.asset(
+                                  image.firstChat,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          )
+                        : const Center();
                   },
-                );
-              },
-            ),
-          ],
+                  selector: (context, state) => state.isFirstConversation,
+                ),
+              ],
+            );
+          },
+          selector: (context, state) => state.isFirstConversation,
         ),
       ),
+    );
+  }
+
+  Stack noFirstConversation() {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Image.asset(
+            image.background,
+            fit: BoxFit.cover,
+          ),
+        ),
+        FutureBuilder(
+          future: messagesFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return loadingState();
+            } else if (snapshot.connectionState == ConnectionState.done) {
+              return conversationRoom(context);
+            } else {
+              return const Text("Error");
+            }
+          },
+        ),
+      ],
     );
   }
 
@@ -101,6 +151,8 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
           children: [
             spacer(height: 56.0),
             HeaderMenu(
+              dubbingProvider: dubbingProvider,
+              fromWhere: "",
               score: widget.score,
               userProfilePhoto: widget.userProfilePhoto,
               scenarioName: widget.scenarioName,
@@ -164,148 +216,205 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
     );
   }
 
-  Column conversationRoom(
-      BuildContext context, ConversationRoomViewModel provider) {
+  Column conversationRoom(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         spacer(height: 56.0),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18.0),
-          child: HeaderMenu(
-            score: widget.score,
-            scenarioName: widget.scenarioName,
-            userProfilePhoto: widget.userProfilePhoto,
-          ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 18.0, right: 18.0, top: 10.0),
-            child: ListView.builder(
-              controller: scrollController,
-              addSemanticIndexes: false,
-              addAutomaticKeepAlives: false,
-              shrinkWrap: true,
-              padding: EdgeInsets.zero,
-              physics: const ClampingScrollPhysics(),
-              reverse: true,
-              itemCount: provider.chats.length,
-              itemBuilder: (context, index) {
-                ChatModel model = provider.chats[index];
-                print(
-                    "count : ${provider.chats[0].conversationCompletionCount}");
-                return model.message == "Loading" && model.id == -2
-                    ? Align(
-                        alignment: Alignment.topLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 30.0),
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              color: Color.fromRGBO(243, 243, 245, 1),
-                              borderRadius: BorderRadius.only(
-                                bottomLeft: Radius.circular(20.0),
-                                bottomRight: Radius.circular(20.0),
-                                topRight: Radius.circular(20.0),
-                              ),
-                            ),
-                            child: Lottie.asset(
-                              lottie.loadingMessage,
-                              height: 35.0,
-                            ),
-                          ),
-                        ),
-                      )
-                    : (provider.chats.last.endConversation == 1 &&
-                                index == 0 &&
-                                provider.isActiveChat) ||
-                            provider.chats[0].conversationCompletionCount ==
-                                "1.0"
-                        ? SingleChildScrollView(
-                            child: !provider.isContinue
-                                ? Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      ChatCard(
-                                        conversationId: widget.conversationId,
-                                        viewModel: viewModel,
-                                        model: model,
-                                        index: index,
-                                        userProfilePhoto:
-                                            widget.userProfilePhoto,
-                                        aiProfilePhoto: widget.aiProfilePhoto,
-                                      ),
-                                      completeQuestion(
-                                          context, model, provider),
-                                    ],
-                                  )
-                                : ChatCard(
-                                    conversationId: widget.conversationId,
-                                    viewModel: viewModel,
-                                    model: model,
-                                    index: index,
-                                    userProfilePhoto: widget.userProfilePhoto,
-                                    aiProfilePhoto: widget.aiProfilePhoto,
-                                  ),
-                          )
-                        : ChatCard(
-                            conversationId: widget.conversationId,
-                            viewModel: viewModel,
-                            model: model,
-                            index: index,
-                            userProfilePhoto: widget.userProfilePhoto,
-                            aiProfilePhoto: widget.aiProfilePhoto,
-                          );
-              },
-            ),
-          ),
-        ),
-        AbsorbPointer(
-          absorbing: !provider.isActiveChat,
-          child: InputMenu(
-            hintText: provider.isActiveChat
-                ? "Ask anything"
-                : "You have completed this scenario",
-            conversationId: widget.conversationId,
-            controller: provider.askController,
-            focusNode: viewModel.askFocusNode,
-            sendMessage: () async {
-              if (provider.isTyping) {
-                showTopSnackBar(
-                  Overlay.of(context),
-                  const CustomSnackBar.error(
-                    message:
-                        "You cannot send multiple message at the same time",
+        Consumer<ConversationRoomViewModel>(
+          builder: (context, provider, child) {
+            return Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 18.0),
+                    child: HeaderMenu(
+                      dubbingProvider: dubbingProvider,
+                      fromWhere: widget.fromWhere,
+                      score: widget.score,
+                      scenarioName: widget.scenarioName,
+                      userProfilePhoto: widget.userProfilePhoto,
+                    ),
                   ),
-                );
-              } else if (provider.askController.text.isNotEmpty) {
-                context.read<DubbingProvider>().stop(); // Stop Dubbing
-                AudioPlayer player = AudioPlayer();
-                await player.play(AssetSource(sound.chatBubble));
-                String message = provider.askController.text;
-                provider.addToChatList(provider.askController.text);
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                          left: 18.0, right: 18.0, top: 10.0),
+                      child: ListView.builder(
+                        controller: scrollController,
+                        addSemanticIndexes: false,
+                        addAutomaticKeepAlives: false,
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        physics: const ClampingScrollPhysics(),
+                        reverse: true,
+                        itemCount: provider.chats.length,
+                        itemBuilder: (context, index) {
+                          ChatModel model = provider.chats[index];
+                          return model.message == "Loading" && model.id == -2
+                              ? Align(
+                                  alignment: Alignment.topLeft,
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets.only(bottom: 30.0),
+                                    child: Container(
+                                      decoration: const BoxDecoration(
+                                        color: Color.fromRGBO(243, 243, 245, 1),
+                                        borderRadius: BorderRadius.only(
+                                          bottomLeft: Radius.circular(20.0),
+                                          bottomRight: Radius.circular(20.0),
+                                          topRight: Radius.circular(20.0),
+                                        ),
+                                      ),
+                                      child: Lottie.asset(
+                                        lottie.loadingMessage,
+                                        height: 35.0,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : (provider.chats.last.endConversation == 1 &&
+                                          index == 0 &&
+                                          provider.isActiveChat) ||
+                                      (provider.chats[0]
+                                                  .conversationCompletionCount ==
+                                              "1.00" &&
+                                          index == 0)
+                                  ? SingleChildScrollView(
+                                      child: !provider.isContinue
+                                          ? Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                ChatCard(
+                                                  chats: provider.chats,
+                                                  messageId: model.id!,
+                                                  scaffoldKey: _scaffoldKey,
+                                                  sendModel:
+                                                      viewModel.sendModel,
+                                                  dubbingProvider:
+                                                      dubbingProvider,
+                                                  conversationId:
+                                                      widget.conversationId,
+                                                  viewModel: viewModel,
+                                                  model: model,
+                                                  index: index,
+                                                  userProfilePhoto:
+                                                      widget.userProfilePhoto,
+                                                  aiProfilePhoto:
+                                                      widget.aiProfilePhoto,
+                                                ),
+                                                completeQuestion(
+                                                    context, model, provider),
+                                              ],
+                                            )
+                                          : ChatCard(
+                                              chats: provider.chats,
+                                              messageId: model.id!,
+                                              scaffoldKey: _scaffoldKey,
+                                              sendModel: viewModel.sendModel,
+                                              dubbingProvider: dubbingProvider,
+                                              conversationId:
+                                                  widget.conversationId,
+                                              viewModel: viewModel,
+                                              model: model,
+                                              index: index,
+                                              userProfilePhoto:
+                                                  widget.userProfilePhoto,
+                                              aiProfilePhoto:
+                                                  widget.aiProfilePhoto,
+                                            ),
+                                    )
+                                  : ChatCard(
+                                      chats: provider.chats,
+                                      messageId: model.id!,
+                                      scaffoldKey: _scaffoldKey,
+                                      sendModel: viewModel.sendModel,
+                                      dubbingProvider: dubbingProvider,
+                                      conversationId: widget.conversationId,
+                                      viewModel: viewModel,
+                                      model: model,
+                                      index: index,
+                                      userProfilePhoto: widget.userProfilePhoto,
+                                      aiProfilePhoto: widget.aiProfilePhoto,
+                                    );
+                        },
+                      ),
+                    ),
+                  ),
+                  Selector<ConversationRoomViewModel, bool>(
+                    builder: (context, isContinue, child) {
+                      return AbsorbPointer(
+                        absorbing: isContinue ? false : !provider.isActiveChat,
+                        child: InputMenu(
+                          viewModel: viewModel,
+                          dubbingProvider: dubbingProvider,
+                          hintText: isContinue
+                              ? "Ask anything"
+                              : provider.isActiveChat
+                                  ? "Ask anything"
+                                  : "You have completed this scenario",
+                          conversationId: widget.conversationId,
+                          controller: provider.askController,
+                          focusNode: viewModel.askFocusNode,
+                          sendMessage: () async {
+                            if (provider.isTyping) {
+                              showTopSnackBar(
+                                Overlay.of(context),
+                                const CustomSnackBar.error(
+                                  message:
+                                      "You cannot send multiple message at the same time",
+                                ),
+                              );
+                            } else if (provider.askController.text.isNotEmpty) {
+                              dubbingProvider.stop(); // Stop Dubbing
+                              context.read<DubbingProvider>().stop();
+                              AudioPlayer player = AudioPlayer();
+                              await player.play(AssetSource(sound.chatBubble));
+                              String message = provider.askController.text;
+                              provider.addToChatList(
+                                  provider.askController.text,
+                                  (provider.chats[0].id! + 1).toString());
 
-                HapticFeedback.heavyImpact();
-                viewModel.askFocusNode.unfocus();
+                              HapticFeedback.heavyImpact();
+                              viewModel.askFocusNode.unfocus();
 
-                provider.changeEmptyTextStatus(true);
-
-                await provider.sendMessage(
-                  context,
-                  message: message,
-                  conversationId: widget.conversationId,
-                );
-              }
-            },
-          ),
+                              provider.changeEmptyTextStatus(true);
+                              analyticInstance.logEvent(
+                                  name: 'start_messaging_text');
+                              context
+                                  .read<BottomMenuViewModel>()
+                                  .openClue(false);
+                              context
+                                  .read<BottomMenuViewModel>()
+                                  .openTask(false);
+                              await provider.sendMessage(
+                                context,
+                                message: message,
+                                conversationId: widget.conversationId,
+                              );
+                            }
+                          },
+                        ),
+                      );
+                    },
+                    selector: (context, state) => state.isContinue,
+                  ),
+                ],
+              ),
+            );
+          },
         ),
-        AbsorbPointer(
-          absorbing: !provider.isActiveChat,
-          child: bottomSection(provider, context),
+        BottomMenu(
+          conversationId: widget.conversationId,
+          viewModel: viewModel,
         ),
-        spacer(height: 25.0),
+        spacer(height: 50.0),
       ],
     );
   }
@@ -350,45 +459,54 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  AppButton(
-                    widthValue: width(0.3),
-                    heightValue: height(0.05),
-                    text: "Continue",
-                    borderRadius: 66.0,
-                    textStyle: currentTextTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: color.background,
-                      fontSize: 14.0,
-                      fontFamily: font.bold,
+                  Expanded(
+                    child: AppButton(
+                      widthValue: width(0.3),
+                      heightValue: height(0.05),
+                      text: "Continue",
+                      borderRadius: 66.0,
+                      textStyle: currentTextTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: color.background,
+                        fontSize: 14.0,
+                        fontFamily: font.bold,
+                      ),
+                      backgroundColor: color.dark70,
+                      onPressed: () => provider.continueChat(true),
                     ),
-                    backgroundColor: color.dark70,
-                    onPressed: () => provider.continueChat(true),
                   ),
+                  spacer(width: 10.0),
                   Selector<ConversationRoomViewModel, bool>(
                     builder: (context, endChat, child) {
-                      return AppButton(
-                        widthValue: width(0.2),
-                        heightValue: height(0.05),
-                        text: "Review",
-                        isLoading: endChat,
-                        textStyle: currentTextTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: color.background,
-                          fontSize: 14.0,
-                          fontFamily: font.bold,
+                      return Expanded(
+                        child: AppButton(
+                          widthValue: width(0.3),
+                          heightValue: height(0.05),
+                          text: "Complete",
+                          isLoading: endChat,
+                          textStyle: currentTextTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: color.background,
+                            fontSize: 14.0,
+                            fontFamily: font.bold,
+                          ),
+                          borderRadius: 66.0,
+                          backgroundColor: color.softBlue,
+                          onPressed: () async {
+                            dubbingProvider.stop();
+                            context.read<DubbingProvider>().stop();
+                            context
+                                .read<ConversationRoomViewModel>()
+                                .continueChat(false);
+                            provider.tapEndChat();
+                            await viewModel.conversationUpdate(
+                              context,
+                              true,
+                              widget.conversationId,
+                            );
+                            provider.tapEndChat();
+                          },
                         ),
-                        borderRadius: 66.0,
-                        backgroundColor: color.softBlue,
-                        onPressed: () async {
-                          context.read<DubbingProvider>().stop();
-                          provider.tapEndChat();
-                          await viewModel.conversationUpdate(
-                            context,
-                            true,
-                            widget.conversationId,
-                          );
-                          provider.tapEndChat();
-                        },
                       );
                     },
                     selector: (context, state) => state.endChatTap,
@@ -399,177 +517,6 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
           ),
         ),
       ),
-    );
-  }
-
-  AnimatedPadding bottomSection(
-      ConversationRoomViewModel provider, BuildContext context) {
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 600),
-      padding: const EdgeInsets.only(
-        left: 18.0,
-        right: 18.0,
-      ),
-      child: Column(
-        children: [
-          // BottomMenu(
-          //   models: provider.menuCards,
-          // ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              MenuCard(
-                model: provider.menuCards[0],
-                onTap: () {
-                  if (provider.isOpenTasks) {
-                    provider.openTask(false);
-                  } else {
-                    provider.openClue(false);
-                    provider.openTask(true);
-                  }
-                },
-              ),
-              MenuCard(
-                model: provider.menuCards[1],
-                onTap: () {
-                  if (provider.isOpenClue) {
-                    provider.openClue(false);
-                  } else {
-                    provider.openTask(false);
-                    provider.openClue(true);
-                  }
-                },
-              ),
-            ],
-          ),
-          provider.isOpenTasks
-              ? FutureBuilder(
-                  future: viewModel.getTasks(widget.conversationId),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 12.0),
-                        child: Lottie.asset(
-                          lottie.loadingMessage,
-                          width: 24.0,
-                          height: 24.0,
-                        ),
-                      );
-                    } else if (snapshot.connectionState ==
-                        ConnectionState.done) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 12.0),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          addAutomaticKeepAlives: false,
-                          addRepaintBoundaries: false,
-                          physics: const ClampingScrollPhysics(),
-                          padding: EdgeInsets.zero,
-                          itemCount: viewModel.taskModel.data!.conversation!
-                              .completedTasks!.length,
-                          itemBuilder: (context, index) {
-                            CompletedTask model = viewModel.taskModel.data!
-                                .conversation!.completedTasks![index];
-                            return task(
-                              context,
-                              model.title!,
-                              index,
-                              model.isComplete!
-                                  ? TextDecoration.lineThrough
-                                  : TextDecoration.none,
-                            );
-                          },
-                        ),
-                      );
-                    } else {
-                      return const Text("Error");
-                    }
-                  },
-                )
-              : !provider.isOpenClue
-                  ? const Center()
-                  : futureSuggest()
-        ],
-      ),
-    );
-  }
-
-  FutureBuilder<dynamic> futureSuggest() {
-    return FutureBuilder(
-        future: viewModel.suggestResponse(widget.conversationId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 12.0),
-              child: Lottie.asset(
-                lottie.loadingMessage,
-                width: 24.0,
-                height: 24.0,
-              ),
-            );
-          } else if (snapshot.connectionState == ConnectionState.done) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 12.0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(
-                  onPressed: () {},
-                  child: Text(
-                    viewModel.suggestModel.data!.suggestResponse!,
-                    style: currentTextTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w400,
-                      color: color.dark100,
-                      fontSize: 14.0,
-                      fontFamily: font.regular,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          } else {
-            return const Text("error");
-          }
-        });
-  }
-
-  Row task(
-      BuildContext context, String task, int index, TextDecoration decoration) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          "●  ",
-          style: currentTextTheme.bodyLarge?.copyWith(
-            fontWeight: FontWeight.w400,
-            color: color.dark100,
-            fontSize: 14.0,
-            fontFamily: font.regular,
-          ),
-        ),
-        Text(
-          task,
-          style: currentTextTheme.bodyLarge?.copyWith(
-            fontWeight: FontWeight.w400,
-            color: color.dark100,
-            fontSize: 14.0,
-            fontFamily: font.regular,
-            decoration: decoration,
-          ),
-        ),
-        index == 1
-            ? Text(
-                " (1/4)",
-                style: currentTextTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: color.dark100,
-                  fontSize: 14.0,
-                  fontFamily: font.bold,
-                ),
-              )
-            : const Center()
-      ],
     );
   }
 }

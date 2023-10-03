@@ -5,9 +5,10 @@ import 'package:talkios/core/cache/cache_manager.dart';
 import 'package:talkios/core/constant/color_constant.dart';
 import 'package:talkios/core/enum/preference_keys.dart';
 import 'package:talkios/product/auth/register/view/pagination_view.dart';
+import 'package:talkios/product/conversation/view/conversation_room_view.dart';
 import 'package:talkios/product/home/home_service.dart';
 import 'package:talkios/product/profile/model/profile_model.dart';
-import 'package:talkios/product/vocabulary/vocabulary_view.dart';
+import 'package:talkios/product/vocabulary/view/vocabulary_view.dart';
 
 import '../conversation/conversation_service.dart';
 import 'model/scenario_model.dart';
@@ -22,6 +23,7 @@ class HomeViewModel extends ChangeNotifier {
 
   // Variable
   List<Scenarios> scenarios = [];
+  List<Scenarios> completeScenario = [];
 
   List<Color> scenarioColors = [
     ColorConstant.instance.pink,
@@ -33,6 +35,9 @@ class HomeViewModel extends ChangeNotifier {
   bool _isTap = false;
   bool get isTap => _isTap;
 
+  bool _isTapVocabulary = false;
+  bool get isTapVocabulary => _isTapVocabulary;
+
   // Function
   void controlUserInformation(BuildContext context, ProfileModel model) {
     if (model.data!.user!.interestTitles!.isEmpty) {
@@ -43,6 +48,11 @@ class HomeViewModel extends ChangeNotifier {
         );
       });
     }
+  }
+
+  void tapVocabulary() {
+    _isTapVocabulary = !_isTapVocabulary;
+    notifyListeners();
   }
 
   void tapButton() {
@@ -60,7 +70,14 @@ class HomeViewModel extends ChangeNotifier {
 
     final response = await _service.getAllScenarios(_token!);
     if (response.result!) {
+      scenarios.clear();
+      completeScenario.clear();
       scenarios.addAll(response.data!.scenarios!);
+      for (var i = 0; i < response.data!.scenarios!.length; i++) {
+        if (response.data!.scenarios![i].isLocked == 0) {
+          completeScenario.add(response.data!.scenarios![i]);
+        }
+      }
     } else {
       print("Hata oluştu");
     }
@@ -81,38 +98,52 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  int conversationId = -1;
+
+  setConversationId(int id) {
+    conversationId = id;
+    notifyListeners();
+  }
+
   Future storeConversation(
-    BuildContext context,
-    String scenarioId,
-    String aiProfilePhoto,
-    String userProfilePhoto,
-    List<Word> words,
-    String scenarioName,
-    String level,
-    int score,
-  ) async {
+      BuildContext context,
+      String scenarioId,
+      String aiProfilePhoto,
+      String userProfilePhoto,
+      List<Word> words,
+      String scenarioName,
+      String level,
+      int score,
+      bool isVocabulary) async {
     String? _token = CacheManager().getString(PreferencesKeys.TOKEN.toString());
     final respoonse =
         await _conversationService.storeConversation(_token!, scenarioId);
 
     if (respoonse.result!) {
+      setConversationId(respoonse.data!.conversation!.id!);
       Future.delayed(
         const Duration(milliseconds: 300),
         () {
-
-          Navigator.of(context).pushAndRemoveUntil(
+          Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => VocabularyView(
-                score: score,
-                words: words,
-                aiProfilePhoto: aiProfilePhoto,
-                userProfilePhoto: userProfilePhoto,
-                conversationId: respoonse.data!.conversation!.id!,
-                level: level,
-                scenarioName: scenarioName,
-              ),
+              builder: (context) => isVocabulary
+                  ? VocabularyView(
+                      words: words,
+                      aiProfilePhoto: aiProfilePhoto,
+                      userProfilePhoto: userProfilePhoto,
+                      conversationId: respoonse.data!.conversation!.id!,
+                      level: level,
+                      scenarioName: scenarioName,
+                    )
+                  : ConversationRoomView(
+                      fromWhere: "detail",
+                      score: score,
+                      aiProfilePhoto: aiProfilePhoto,
+                      userProfilePhoto: userProfilePhoto,
+                      conversationId: respoonse.data!.conversation!.id!,
+                      scenarioName: scenarioName,
+                    ),
             ),
-            (Route<dynamic> route) => false,
           );
         },
       );

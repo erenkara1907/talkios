@@ -25,6 +25,14 @@ class CacheManager extends ChangeNotifier {
     return _preferences!.getString(key);
   }
 
+  Future<bool> setBool(String key, bool value) async {
+    return _preferences!.setBool(key, value);
+  }
+
+  bool? getBool(String key) {
+    return _preferences!.getBool(key);
+  }
+
   Future<bool> setJson(String key, Map<String, dynamic> value) async {
     return _preferences!.setString(key, json.encode(value));
   }

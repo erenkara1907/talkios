@@ -53,11 +53,19 @@ class AccountSettingsView extends BaseStateless {
           children: [
             AccountButton(
               label: "Skill Level",
-              onPressed: () => context.read<ProfileViewModel>().showLevelPicker(
-                    context,
-                    "Level",
-                    profileModel,
-                  ),
+              onPressed: () {
+                if (state.skillLevel.isNotEmpty) {
+                  profileModel.data!.user!.learnLanguages![0].proficiencyLevel!
+                      .scale = state.skillLevel;
+                }
+                context.read<ProfileViewModel>().showLevelPicker(
+                      context,
+                      "Level",
+                      profileModel,
+                      profileModel.data!.user!.learnLanguages![0]
+                          .proficiencyLevel!.scale!,
+                    );
+              },
               text: state.skillLevel.isNotEmpty
                   ? state.skillLevel
                   : profileModel
@@ -66,11 +74,17 @@ class AccountSettingsView extends BaseStateless {
             spacer(height: 10.0),
             AccountButton(
               label: "Session Length",
-              onPressed: () => context.read<ProfileViewModel>().showLevelPicker(
+              onPressed: () {
+                if (state.sessionLength.isNotEmpty) {
+                  profileModel.data!.user!.userDetail!.sessionLength =
+                      state.sessionTime;
+                }
+                context.read<ProfileViewModel>().showLevelPicker(
                     context,
                     "Time",
                     profileModel,
-                  ),
+                    profileModel.data!.user!.userDetail!.sessionLength!);
+              },
               text: state.sessionLength.isNotEmpty
                   ? state.sessionLength
                   : "${profileModel.data!.user!.userDetail!.sessionLength} minutes",
@@ -99,11 +113,17 @@ class AccountSettingsView extends BaseStateless {
             spacer(height: 10.0),
             AccountButton(
               label: "Native Language",
-              onPressed: () => context.read<ProfileViewModel>().showLevelPicker(
+              onPressed: () {
+                if (state.language.isNotEmpty) {
+                  profileModel.data!.user!.nativeLanguage!.title =
+                      state.language;
+                }
+                context.read<ProfileViewModel>().showLevelPicker(
                     context,
                     "Language",
                     profileModel,
-                  ),
+                    profileModel.data!.user!.nativeLanguage!.title!);
+              },
               text: state.language.isNotEmpty
                   ? state.language
                   : profileModel.data!.user!.nativeLanguage!.title,
@@ -112,24 +132,31 @@ class AccountSettingsView extends BaseStateless {
             AccountButton(
               label: "Notifications",
               isAvailableCheckbox: true,
-              onPressed: () => state.notification(),
+              onPressed: () {
+                state.notification();
+                context.read<ProfileViewModel>().updateBoolValue(
+                  context,
+                  {
+                    "notification": state.isNotification,
+                  },
+                );
+              },
               checkValue: state.isNotification,
             ),
             spacer(height: 10.0),
             AccountButton(
-              label: "Practice Reminders",
-              isAvailableCheckbox: true,
-              onPressed: () => state.reminder(),
-              checkValue: state.isReminder,
-            ),
-            spacer(height: 10.0),
-            AccountButton(
               label: "Time of Reminders",
-              onPressed: () => context.read<ProfileViewModel>().showLevelPicker(
+              onPressed: () {
+                if (state.practice.isNotEmpty) {
+                  profileModel.data!.user!.userDetail!.timeOfReminder =
+                      state.practice;
+                }
+                context.read<ProfileViewModel>().showLevelPicker(
                     context,
                     "Practice",
                     profileModel,
-                  ),
+                    profileModel.data!.user!.userDetail!.timeOfReminder!);
+              },
               text: state.practice.isNotEmpty
                   ? state.practice
                   : profileModel.data!.user!.userDetail!.timeOfReminder,

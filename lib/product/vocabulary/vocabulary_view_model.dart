@@ -1,11 +1,10 @@
-// ignore_for_file: depend_on_referenced_packages, use_build_context_synchronously
+// ignore_for_file: depend_on_referenced_packages, use_build_context_synchronously, no_leading_underscores_for_local_identifiers
 
 import 'dart:async';
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:provider/provider.dart';
 import 'package:talkios/core/cache/cache_manager.dart';
 import 'package:talkios/core/enum/preference_keys.dart';
@@ -13,18 +12,12 @@ import 'package:talkios/product/vocabulary/vocabulary_service.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
+import '../../core/constant/config_constant.dart';
 import '../../core/util/provider/sound/sound_recorder_service.dart';
+import '../../core/util/provider/sound/speech_provider.dart';
 
 class VocabularyViewModel extends ChangeNotifier {
-  final _appKey = "1686539747000176";
-  final _secretKey = "acf887731c9876ee6e41652394c4c873";
-  final _userId = "uid";
-  final _coreType = "sent.eval";
-  final _audioType = "wav";
-  final _audioSampleRate = "16000";
   String? _path = '';
-
-  CardSwiperController cardSwiperController = CardSwiperController();
 
   int _currentCardIndex = 0;
   int get currentCardIndex => _currentCardIndex;
@@ -41,10 +34,40 @@ class VocabularyViewModel extends ChangeNotifier {
   bool _isGlowAnimate = false;
   bool get isGlowAnimate => _isGlowAnimate;
 
+  bool _isVisibleGif = false;
+  bool get isVisibleGif => _isVisibleGif;
+
   String voiceMessage = "";
 
   final VocabularyService _service = VocabularyService();
   final SoundRecorderService _soundService = SoundRecorderService();
+
+  void showGif() async {
+    bool? _isFirst =
+        CacheManager().getBool(PreferencesKeys.IS_FIRST_VOCABULARY.toString());
+    if (_isFirst!) {
+      _isVisibleGif = true;
+      notifyListeners();
+    }
+  }
+
+  void hideGif() async {
+    bool? _isFirst =
+        CacheManager().getBool(PreferencesKeys.IS_FIRST_VOCABULARY.toString());
+    if (_isFirst!) {
+      _isVisibleGif = false;
+      await CacheManager()
+          .setBool(PreferencesKeys.IS_FIRST_VOCABULARY.toString(), false);
+      notifyListeners();
+    }
+  }
+
+  void forceHideGif() async {
+    _isVisibleGif = false;
+    await CacheManager()
+        .setBool(PreferencesKeys.IS_FIRST_VOCABULARY.toString(), false);
+    notifyListeners();
+  }
 
   void cardIndex(int index) {
     _currentCardIndex = index;
@@ -53,6 +76,7 @@ class VocabularyViewModel extends ChangeNotifier {
 
   void defaultNewScore(int defaultScore) {
     _newScore = defaultScore;
+    notifyListeners();
   }
 
   void incrementScore(int score) {
@@ -60,13 +84,13 @@ class VocabularyViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void record() {
-    _isRecord = !_isRecord;
+  void record(bool value) {
+    _isRecord = value;
     notifyListeners();
   }
 
-  void glowAnimate() {
-    _isGlowAnimate = !_isGlowAnimate;
+  void glowAnimate(bool value) {
+    _isGlowAnimate = value;
     notifyListeners();
   }
 
@@ -77,52 +101,63 @@ class VocabularyViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  FutureOr<bool> mySwipeFunction(int firstParam,
-      [int? secondParam, CardSwiperDirection? direction]) {
-    // Burada işlemlerinizi yapın
-    return true; // ya da return Future.value(true);
+  Future<void> stopRecord() async {
+    await _soundService.stopRecording();
   }
 
-  Future<void> stopRecording(
-      BuildContext context, String voiceMessage, String wordId) async {
+  Future<void> stopRecording(BuildContext context, String voiceMessage,
+      String wordId, int conversationId) async {
     await _soundService.stopRecording();
     _path = _soundService.currentPath;
-    await pronunciationCheck(
-      context,
-      voiceMessage,
-      wordId,
-    );
+    if (context.read<SpeechProvider>().lastWords.isNotEmpty) {
+      await pronunciationCheck(context, voiceMessage, wordId, conversationId);
+    } else {
+      record(false);
+      glowAnimate(false);
+      stopRecord();
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.error(
+          message: "Please record audio",
+        ),
+      );
+    }
+
     notifyListeners();
   }
 
-  // void defaultScore() {
-  //   _score = "";
-  //   notifyListeners();
-  // }
+  void removeScore() {
+    _score = "";
+    notifyListeners();
+  }
 
-  Future updateScore(String score, String wordId) async {
+  Future updateScore(String score, String wordId, int conversationId) async {
     String? token = CacheManager().getString(PreferencesKeys.TOKEN.toString());
 
     final response = await _service.updateScore(
       token!,
       score,
       wordId,
+      conversationId,
     );
 
     if (response.result!) {
-      Future.delayed(
-        const Duration(milliseconds: 500),
-        () {
-          cardSwiperController.swipeRight();
-          notifyListeners();
-        },
-      );
+      // Future.delayed(
+      //   const Duration(seconds: 1),
+      //   () {
+      //     _score = "";
+      //     notifyListeners();
+      //   },
+      // );
     }
   }
 
   Future<void> pronunciationCheck(
-      BuildContext context, String voiceMessage, String wordId) async {
-    print("voiceMesssage : ${voiceMessage}");
+    BuildContext context,
+    String voiceMessage,
+    String wordId,
+    int conversationId,
+  ) async {
     String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
     var params = {
       "connect": {
@@ -130,9 +165,9 @@ class VocabularyViewModel extends ChangeNotifier {
         "param": {
           "sdk": {"version": 16777472, "source": 9, "protocol": 2},
           "app": {
-            "applicationId": _appKey,
+            "applicationId": appKey,
             "sig": sha1
-                .convert(utf8.encode("$_appKey$timestamp$_secretKey"))
+                .convert(utf8.encode("$appKey$timestamp$secretKey"))
                 .toString(),
             "timestamp": timestamp
           }
@@ -142,47 +177,53 @@ class VocabularyViewModel extends ChangeNotifier {
         "cmd": "start",
         "param": {
           "app": {
-            "applicationId": _appKey,
+            "applicationId": appKey,
             "sig": sha1
-                .convert(utf8.encode("$_appKey$timestamp$_userId$_secretKey"))
+                .convert(utf8.encode("$appKey$timestamp$userId$secretKey"))
                 .toString(),
-            "userId": _userId,
+            "userId": userId,
             "timestamp": timestamp
           },
           "audio": {
-            "audioType": _audioType,
-            "sampleRate": _audioSampleRate,
+            "audioType": audioType,
+            "sampleRate": audioSampleRate,
             "channel": 1,
             "sampleBytes": 2
           },
           "request": {
             "refText": voiceMessage,
-            "coreType": _coreType,
+            "coreType": coreType,
             "tokenId": timestamp,
           }
         }
       }
     };
+
     var response = await _service.sendPronunciationCheckRequest(
-        voiceMessage, params, _coreType, _path!);
+        voiceMessage, params, coreType, _path!);
 
     if (response.statusCode == 200) {
-      response.stream.transform(utf8.decoder).join().then((String str) {
+      response.stream.transform(utf8.decoder).join().then((String str) async {
         // Handle success
         var respJson = jsonDecode(str);
-        print("status code : ${respJson["result"]}");
         if (respJson != null &&
             respJson["result"] != null &&
             respJson["result"]["overall"] != null) {
           _score = respJson["result"]["overall"].toString();
-          context.read<VocabularyViewModel>().record();
-          print("score : $_score");
+          context.read<VocabularyViewModel>().record(false);
+          context.read<VocabularyViewModel>().showGif();
           incrementScore(int.parse(_score));
           notifyListeners();
 
-          updateScore(_score, wordId);
+          await updateScore(_score, wordId, conversationId);
+          Future.delayed(
+            const Duration(milliseconds: 1500),
+            () {
+              context.read<VocabularyViewModel>().hideGif();
+            },
+          );
         } else {
-          context.read<VocabularyViewModel>().record();
+          context.read<VocabularyViewModel>().record(false);
           showTopSnackBar(
             Overlay.of(context),
             const CustomSnackBar.error(
@@ -194,7 +235,7 @@ class VocabularyViewModel extends ChangeNotifier {
         }
       });
     } else {
-      context.read<VocabularyViewModel>().record();
+      context.read<VocabularyViewModel>().record(false);
       showTopSnackBar(
         Overlay.of(context),
         const CustomSnackBar.error(

@@ -59,9 +59,12 @@ class PersonalInformationView extends BaseStateless {
                       MaterialStateProperty.all<Color?>(Colors.transparent),
                   onTap: () {
                     context.read<ProfileViewModel>().showModal(true);
-                    context
-                        .read<ProfileViewModel>()
-                        .showEditProfile(context, profilePhoto, name);
+                    context.read<ProfileViewModel>().showEditProfile(
+                          context,
+                          profilePhoto,
+                          name,
+                          context.read<ProfileViewModel>().nameController,
+                        );
                   },
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -105,10 +108,14 @@ class PersonalInformationView extends BaseStateless {
                   overlayColor:
                       MaterialStateProperty.all<Color?>(Colors.transparent),
                   onTap: () {
+                    context.read<ProfileViewModel>().setName(name);
                     context.read<ProfileViewModel>().showModal(false);
-                    context
-                        .read<ProfileViewModel>()
-                        .showEditProfile(context, profilePhoto, name);
+                    context.read<ProfileViewModel>().showEditProfile(
+                          context,
+                          profilePhoto,
+                          name,
+                          context.read<ProfileViewModel>().nameController,
+                        );
                   },
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -123,17 +130,23 @@ class PersonalInformationView extends BaseStateless {
                               fontFamily: font.medium,
                             ),
                       ),
-                      Hero(
-                        tag: "username",
-                        child: Text(
-                          name,
-                          style: currentTextTheme(context).bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w500,
-                                color: color.cyan,
-                                fontSize: 14.0,
-                                fontFamily: font.medium,
-                              ),
-                        ),
+                      Selector<ProfileViewModel, String>(
+                        builder: (context, nameState, child) {
+                          return Hero(
+                            tag: "username",
+                            child: Text(
+                              nameState.isNotEmpty ? nameState : name,
+                              style:
+                                  currentTextTheme(context).bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                        color: color.cyan,
+                                        fontSize: 14.0,
+                                        fontFamily: font.medium,
+                                      ),
+                            ),
+                          );
+                        },
+                        selector: (context, state) => state.nameController.text,
                       ),
                     ],
                   ),

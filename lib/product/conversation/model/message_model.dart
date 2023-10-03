@@ -3,6 +3,7 @@ class Messages {
   String? role;
   String? message;
   int? endConversation;
+  int? score;
   dynamic sound;
   dynamic soundRatio;
   String? correctSentence;
@@ -13,6 +14,7 @@ class Messages {
     this.role,
     this.message,
     this.endConversation,
+    this.score,
     this.sound,
     this.soundRatio,
     this.correctSentence,
@@ -23,6 +25,7 @@ class Messages {
     id = json['id'];
     role = json['role'];
     message = json['message'];
+    score = json['score'];
     endConversation = json['end_conversation'];
     sound = json['sound'];
     soundRatio = json['sound_ratio'];

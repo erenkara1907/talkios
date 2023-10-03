@@ -23,14 +23,18 @@ class VocabularyService {
     return await request.send();
   }
 
-  Future<UpdateScoreModel> updateScore(String token, String score, String wordId) async {
-    final response =
-        await http.post(Uri.parse(ApiConstant.instance.profilUrl), headers: {
-      "Authorization": "Bearer $token",
-    }, body: {
-      "score": score,
-      "word_id": wordId,
-    });
+  Future<UpdateScoreModel> updateScore(
+      String token, String score, String wordId, int conversationId) async {
+    final response = await http.put(
+        Uri.parse("${ApiConstant.instance.conversationUrl}/$conversationId"),
+        headers: {
+          "Authorization": "Bearer $token",
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          "score": score,
+          "word_id": wordId,
+        });
 
     return UpdateScoreModel.fromJson(jsonDecode(response.body));
   }

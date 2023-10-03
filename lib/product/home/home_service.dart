@@ -23,4 +23,22 @@ class HomeService {
 
     return ProfileModel.fromJson(jsonDecode(response.body));
   }
+
+  Future<void> sendPlayerIdToBackend(String playerId, String token) async {
+    final response = await http.post(
+      Uri.parse(ApiConstant.instance.playerId),
+      headers: {
+        "Authorization": "Bearer $token",
+      },
+      body: {
+        'onesignal_player_id': playerId,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      print('Player ID başarıyla gönderildi.');
+    } else {
+      print('Player ID gönderilirken bir hata oluştu: ${response.body}');
+    }
+  }
 }

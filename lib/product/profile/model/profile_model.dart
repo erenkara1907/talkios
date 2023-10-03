@@ -120,11 +120,13 @@ class UserDetail {
   String? sessionLength;
   String? timeOfReminder;
   int? score;
+  bool? notification;
   UserDetail({
     this.targetId,
     this.sessionLength,
     this.timeOfReminder,
     this.score,
+    this.notification,
   });
 
   UserDetail.fromJson(Map<String, dynamic> json) {
@@ -132,6 +134,7 @@ class UserDetail {
     sessionLength = json["session_length"];
     timeOfReminder = json["time_of_reminder"];
     score = json["score"];
+    notification = json["notification"];
   }
 }
 

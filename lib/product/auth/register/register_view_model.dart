@@ -1,6 +1,7 @@
 // ignore_for_file: no_leading_underscores_for_local_identifiers, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:talkios/core/cache/cache_manager.dart';
 import 'package:talkios/core/constant/color_constant.dart';
 import 'package:talkios/core/constant/icon_constant.dart';
@@ -21,12 +22,14 @@ import 'package:talkios/product/auth/register/view/pagination_view.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
+import '../../../core/constant/config_constant.dart';
+import '../../home/home_service.dart';
 import 'model/interest_model.dart';
 
 class RegisterViewModel extends ChangeNotifier {
   // Service
   RegisterService service = RegisterService();
-
+  final HomeService _service = HomeService();
   // Pagination
   int _currentPage = 0;
   int get currentPage => _currentPage;
@@ -214,10 +217,18 @@ class RegisterViewModel extends ChangeNotifier {
   // Function
   Future register(BuildContext context, Map<String, dynamic> userInfo) async {
     final response = await service.register(userInfo);
+    final playerId = OneSignal.User.pushSubscription.id;
 
     if (response.result!) {
+      await _service.sendPlayerIdToBackend(playerId!, response.data!.token!);
+      await CacheManager()
+          .setBool(PreferencesKeys.IS_FIRST_CONVERSATION.toString(), true);
+      await CacheManager()
+          .setBool(PreferencesKeys.IS_FIRST_VOCABULARY.toString(), true);
+
       String _token = response.data!.token!;
       CacheManager().setString(PreferencesKeys.TOKEN.toString(), _token);
+      analyticInstance.logEvent(name: 'signed_up');
       Future.delayed(
         const Duration(milliseconds: 300),
         () {

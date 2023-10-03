@@ -1,9 +1,14 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
+import 'package:flutter_native_timezone/flutter_native_timezone.dart';
 import 'package:provider/provider.dart';
 import 'package:talkios/core/util/provider/time_provider.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
 
 import '../../../product/auth/register/register_view_model.dart';
+import '../../cache/cache_manager.dart';
+import '../../enum/preference_keys.dart';
 
 class InterestedView extends BaseStateless {
   final PageController pageController;
@@ -97,7 +102,13 @@ class InterestedView extends BaseStateless {
               child: InkWell(
                 onTap: state.buttonFillPercentage
                     ? () async {
+                        final String currentTimeZone =
+                            await FlutterNativeTimezone.getLocalTimezone();
+
                         context.read<RegisterViewModel>().tapButton();
+                        await CacheManager().setBool(
+                            PreferencesKeys.IS_FIRST_VOCABULARY.toString(),
+                            true);
                         await context
                             .read<RegisterViewModel>()
                             .updateProfileInfo(
@@ -115,6 +126,7 @@ class InterestedView extends BaseStateless {
                                 context.read<RegisterViewModel>().selectedTime,
                             "time_of_reminder":
                                 context.read<TimeProvider>().label,
+                            "timezone": currentTimeZone,
                           },
                           pageController,
                         );

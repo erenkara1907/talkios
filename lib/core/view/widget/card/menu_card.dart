@@ -6,10 +6,12 @@ import 'package:talkios/product/conversation/model/menu_card_model.dart';
 class MenuCard extends BaseStateless {
   final MenuCardModel model;
   final void Function() onTap;
+  final Color borderColor;
   const MenuCard({
     super.key,
     required this.model,
     required this.onTap,
+    required this.borderColor,
   });
 
   @override
@@ -22,6 +24,10 @@ class MenuCard extends BaseStateless {
           overlayColor: MaterialStateProperty.all<Color>(Colors.transparent),
           onTap: onTap,
           child: Chip(
+            side: BorderSide(
+              width: 1.0,
+              color: borderColor,
+            ),
             elevation: 1,
             backgroundColor: color.background,
             padding:

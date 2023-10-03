@@ -3,12 +3,16 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
 import 'package:talkios/core/view/widget/button/app_button.dart';
+import 'package:talkios/product/conversation/view/conversation_room_view.dart';
 import 'package:talkios/product/home/home_view_model.dart';
+import 'package:talkios/product/vocabulary/view/vocabulary_view.dart';
 import 'package:talkios/product/vocabulary/vocabulary_view_model.dart';
 
+import '../../../core/constant/config_constant.dart';
 import '../model/scenario_model.dart';
 
 class ScenarioDetailView extends BaseStateless {
@@ -132,6 +136,203 @@ class ScenarioDetailView extends BaseStateless {
                 textAlign: TextAlign.center,
               ),
             ),
+            const Expanded(child: SizedBox()),
+            Selector<HomeViewModel, bool>(
+              builder: (context, isTapVocabulary, child) {
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    AnimatedOpacity(
+                      duration: const Duration(milliseconds: 300),
+                      opacity: isTapVocabulary ? 0.3 : 1.0,
+                      child: AbsorbPointer(
+                        absorbing: isTapVocabulary,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: color.background,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                                side: const BorderSide(
+                                  color: Color.fromRGBO(243, 243, 245, 1),
+                                ),
+                              ),
+                            ),
+                            onPressed: () async {
+                              context.read<HomeViewModel>().tapVocabulary();
+                              analyticInstance.logEvent(
+                                  name: 'start_vocabulary');
+                              if (context
+                                      .read<VocabularyViewModel>()
+                                      .newScore !=
+                                  0) {
+                                context
+                                    .read<VocabularyViewModel>()
+                                    .defaultNewScore(context
+                                        .read<VocabularyViewModel>()
+                                        .newScore);
+                              } else {
+                                context
+                                    .read<VocabularyViewModel>()
+                                    .defaultNewScore(score);
+                              }
+                              if (context
+                                      .read<HomeViewModel>()
+                                      .conversationId !=
+                                  -1) {
+                                push(
+                                  context,
+                                  VocabularyView(
+                                    conversationId: context
+                                        .read<HomeViewModel>()
+                                        .conversationId,
+                                    userProfilePhoto: userProfilePhoto,
+                                    aiProfilePhoto: aiProfilePhoto,
+                                    words: words,
+                                    scenarioName: scenarioName,
+                                    level: level,
+                                  ),
+                                );
+                              } else {
+                                context
+                                    .read<VocabularyViewModel>()
+                                    .removeScore();
+                                await context
+                                    .read<HomeViewModel>()
+                                    .storeConversation(
+                                      context,
+                                      scenarioId.toString(),
+                                      aiProfilePhoto,
+                                      userProfilePhoto,
+                                      words,
+                                      scenarioName,
+                                      level,
+                                      score,
+                                      true,
+                                    );
+                              }
+                              context.read<HomeViewModel>().tapVocabulary();
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(15.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  SvgPicture.asset(icon.card),
+                                  spacer(width: 14.0),
+                                  Expanded(
+                                    flex: 5,
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Vocabulary",
+                                          style: currentTextTheme(context)
+                                              .bodyLarge
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w500,
+                                                color: color.dark80,
+                                                fontSize: 16.0,
+                                                fontFamily: font.medium,
+                                              ),
+                                        ),
+                                        spacer(height: 4.0),
+                                        Text(
+                                          "Prepare for conversations by learning some new words.",
+                                          style: currentTextTheme(context)
+                                              .bodyLarge
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w400,
+                                                color: color.dark40,
+                                                fontSize: 12.0,
+                                                fontFamily: font.regular,
+                                              ),
+                                          overflow: TextOverflow.clip,
+                                          maxLines: 2,
+                                          textAlign: TextAlign.start,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    iconSize: 20.0,
+                                    onPressed: () async {
+                                      context
+                                          .read<HomeViewModel>()
+                                          .tapVocabulary();
+                                      analyticInstance.logEvent(
+                                          name: 'start_vocabulary');
+                                      context
+                                          .read<VocabularyViewModel>()
+                                          .defaultNewScore(score);
+                                      if (context
+                                              .read<HomeViewModel>()
+                                              .conversationId !=
+                                          -1) {
+                                        push(
+                                          context,
+                                          VocabularyView(
+                                            conversationId: context
+                                                .read<HomeViewModel>()
+                                                .conversationId,
+                                            userProfilePhoto: userProfilePhoto,
+                                            aiProfilePhoto: aiProfilePhoto,
+                                            words: words,
+                                            scenarioName: scenarioName,
+                                            level: level,
+                                          ),
+                                        );
+                                      } else {
+                                        await context
+                                            .read<HomeViewModel>()
+                                            .storeConversation(
+                                              context,
+                                              scenarioId.toString(),
+                                              aiProfilePhoto,
+                                              userProfilePhoto,
+                                              words,
+                                              scenarioName,
+                                              level,
+                                              score,
+                                              true,
+                                            );
+                                      }
+                                      context
+                                          .read<HomeViewModel>()
+                                          .tapVocabulary();
+                                    },
+                                    icon: Icon(
+                                      Icons.arrow_forward_ios,
+                                      color: color.dark100,
+                                      size: 20.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    AnimatedOpacity(
+                      opacity: isTapVocabulary ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: CircularProgressIndicator(
+                        color: color.dark100,
+                        strokeWidth: 1.0,
+                      ),
+                    ),
+                  ],
+                );
+              },
+              selector: (context, state) => state.isTapVocabulary,
+            ),
             const Expanded(flex: 3, child: SizedBox()),
             Selector<HomeViewModel, bool>(
               builder: (context, isTap, child) {
@@ -147,21 +348,36 @@ class ScenarioDetailView extends BaseStateless {
                     isLoading: isTap,
                     backgroundColor: color.dark100,
                     onPressed: () async {
-                      context.read<HomeViewModel>().tapButton();
-                      context
-                          .read<VocabularyViewModel>()
-                          .defaultNewScore(score);
-                      await context.read<HomeViewModel>().storeConversation(
-                            context,
-                            scenarioId.toString(),
-                            aiProfilePhoto,
-                            userProfilePhoto,
-                            words,
-                            scenarioName,
-                            level,
-                            score,
-                          );
-                      context.read<HomeViewModel>().tapButton();
+                      if (context.read<HomeViewModel>().conversationId != -1) {
+                        push(
+                          context,
+                          ConversationRoomView(
+                            fromWhere: "detail",
+                            conversationId:
+                                context.read<HomeViewModel>().conversationId,
+                            userProfilePhoto: userProfilePhoto,
+                            aiProfilePhoto: aiProfilePhoto,
+                            scenarioName: scenarioName,
+                            score: score,
+                          ),
+                        );
+                      } else {
+                        analyticInstance.logEvent(name: 'start_conversation');
+                        context.read<HomeViewModel>().tapButton();
+
+                        await context.read<HomeViewModel>().storeConversation(
+                              context,
+                              scenarioId.toString(),
+                              aiProfilePhoto,
+                              userProfilePhoto,
+                              words,
+                              scenarioName,
+                              level,
+                              score,
+                              false,
+                            );
+                        context.read<HomeViewModel>().tapButton();
+                      }
                     },
                     textStyle: currentTextTheme(context).bodyLarge?.copyWith(
                           fontWeight: FontWeight.w700,

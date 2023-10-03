@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
 import 'package:talkios/core/view/widget/button/profile_button.dart';
@@ -12,6 +13,7 @@ import 'package:talkios/product/profile/model/profile_model.dart';
 import 'package:talkios/product/profile/profile_view_model.dart';
 import 'package:talkios/product/profile/view/personal_information_view.dart';
 
+import '../../../core/util/connectivity_service.dart';
 import '../../../core/util/provider/image/image_upload_view_model.dart';
 
 class ProfileView extends BaseStateless {
@@ -29,6 +31,16 @@ class ProfileView extends BaseStateless {
 
   @override
   Widget build(BuildContext context) {
+    return Provider.of<ConnectivityService>(context, listen: true)
+                .connectionStatus ==
+            ConnectionStatus.Online
+        ? profileView(context)
+        : Center(
+            child: Lottie.asset(lottie.networkError),
+          );
+  }
+
+  Stack profileView(BuildContext context) {
     return Stack(
       children: [
         Positioned.fill(
@@ -78,15 +90,18 @@ class ProfileView extends BaseStateless {
                     tag: heroTag,
                     child: ProfileButton(
                       text: viewModel.buttons[index].text,
-                      onPressed: () =>
-                          context.read<ProfileViewModel>().handleButtonPressed(
-                                context,
-                                index,
-                                viewModel.buttons[index].text,
-                                profilePhoto: profilePhoto,
-                                name: name,
-                                profileModel: profileModel,
-                              ),
+                      onPressed: () {
+                        context.read<ProfileViewModel>().defaultNotification(
+                            profileModel.data!.user!.userDetail!.notification!);
+                        context.read<ProfileViewModel>().handleButtonPressed(
+                              context,
+                              index,
+                              viewModel.buttons[index].text,
+                              profilePhoto: profilePhoto,
+                              name: name,
+                              profileModel: profileModel,
+                            );
+                      },
                       profileIcon: viewModel.buttons[index].icon,
                       backgroundColor: buttonIndex == index
                           ? color.dark10

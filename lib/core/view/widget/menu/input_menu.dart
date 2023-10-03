@@ -9,7 +9,11 @@ import 'package:provider/provider.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
 import 'package:talkios/core/view/widget/textfield/chat_textfield.dart';
 import 'package:talkios/product/conversation/viewmodel/conversation_room_view_model.dart';
+import 'package:top_snackbar_flutter/custom_snack_bar.dart';
+import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
+import '../../../../product/conversation/viewmodel/bottom_menu_view_model.dart';
+import '../../../constant/config_constant.dart';
 import '../../../util/provider/sound/dubbing_provider.dart';
 import '../../../util/provider/sound/speech_provider.dart';
 
@@ -18,6 +22,8 @@ class InputMenu extends BaseStateless {
   final FocusNode focusNode;
   final void Function() sendMessage;
   final int conversationId;
+  final DubbingProvider dubbingProvider;
+  final ConversationRoomViewModel viewModel;
   final String hintText;
   InputMenu({
     super.key,
@@ -25,6 +31,8 @@ class InputMenu extends BaseStateless {
     required this.focusNode,
     required this.sendMessage,
     required this.conversationId,
+    required this.dubbingProvider,
+    required this.viewModel,
     required this.hintText,
   });
 
@@ -43,21 +51,19 @@ class InputMenu extends BaseStateless {
           focusNode: focusNode,
           hintText: hintText,
         ),
-        Selector<ConversationRoomViewModel, bool>(
-          builder: (context, isEmpty, child) {
+        Selector<ConversationRoomViewModel, String>(
+          builder: (context, askText, child) {
             return Positioned(
               right: 60.0,
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 300),
-                opacity: !isEmpty ? 1.0 : 0.0,
+                opacity: askText.isNotEmpty ? 1.0 : 0.0,
                 child: Material(
                   type: MaterialType.transparency,
                   child: IconButton(
-                    onPressed: !isEmpty
+                    onPressed: askText.isNotEmpty
                         ? () {
-                            context
-                                .read<DubbingProvider>()
-                                .stop(); // Stop Dubbing
+                            dubbingProvider.stop();
                             context
                                 .read<ConversationRoomViewModel>()
                                 .changeEmptyTextStatus(true);
@@ -71,26 +77,26 @@ class InputMenu extends BaseStateless {
               ),
             );
           },
-          selector: (context, state) => state.isEmptyText,
+          selector: (context, state) => state.askController.text,
         ),
-        Selector<ConversationRoomViewModel, bool>(
-          builder: (context, isEmpty, child) {
+        Selector<ConversationRoomViewModel, String>(
+          builder: (context, askText, child) {
             return Positioned(
               right: 20.0,
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 300),
-                opacity: !isEmpty ? 1.0 : 0.0,
+                opacity: askText.isNotEmpty ? 1.0 : 0.0,
                 child: Material(
                   type: MaterialType.transparency,
                   child: IconButton(
-                    onPressed: !isEmpty ? sendMessage : () {},
+                    onPressed: askText.isNotEmpty ? sendMessage : () {},
                     icon: SvgPicture.asset(icon.send),
                   ),
                 ),
               ),
             );
           },
-          selector: (context, state) => state.isEmptyText,
+          selector: (context, state) => state.askController.text,
         ),
         Selector<ConversationRoomViewModel, bool>(
           builder: (context, isShow, child) {
@@ -134,25 +140,52 @@ class InputMenu extends BaseStateless {
             type: MaterialType.transparency,
             child: GestureDetector(
               onTap: () async {
-                context.read<DubbingProvider>().stop(); // Stop Dubbing
+                dubbingProvider.stop();
                 await player.play(AssetSource(sound.voiceButton));
                 context.read<ConversationRoomViewModel>().showWarning();
                 Provider.of<SpeechProvider>(context, listen: false)
                     .getPermissionAndStartListening(context);
               },
               onLongPress: () async {
-                context.read<DubbingProvider>().stop(); // Stop Dubbing
-                await player.play(AssetSource(sound.voiceButton));
-                await player.play(AssetSource(sound.voiceButton));
-                HapticFeedback.heavyImpact();
-                Provider.of<SpeechProvider>(context, listen: false).record();
-                Provider.of<SpeechProvider>(context, listen: false)
-                    .startListening();
+                if (!context.read<ConversationRoomViewModel>().isTyping) {
+                  dubbingProvider.stop();
+                  await player.play(AssetSource(sound.voiceButton));
+                  HapticFeedback.heavyImpact();
+                  if (context.read<SpeechProvider>().isRecord) {
+                    Provider.of<SpeechProvider>(context, listen: false)
+                        .record(false);
+                  } else {
+                    Provider.of<SpeechProvider>(context, listen: false)
+                        .record(true);
+                  }
+                  Provider.of<SpeechProvider>(context, listen: false)
+                      .startListening();
+                  await context
+                      .read<ConversationRoomViewModel>()
+                      .startRecording();
+                } else {
+                  showTopSnackBar(
+                    Overlay.of(context),
+                    const CustomSnackBar.error(
+                      message:
+                          "You cannot send multiple message at the same time",
+                    ),
+                  );
+                }
               },
               onLongPressEnd: (details) async {
                 Provider.of<SpeechProvider>(context, listen: false)
                     .stopListening();
-                Provider.of<SpeechProvider>(context, listen: false).record();
+                await context.read<ConversationRoomViewModel>().stopRecording();
+                if (!context.read<SpeechProvider>().isRecord) {
+                  Provider.of<SpeechProvider>(context, listen: false)
+                      .record(true);
+                } else {
+                  Provider.of<SpeechProvider>(context, listen: false)
+                      .record(false);
+                }
+                Provider.of<SpeechProvider>(context, listen: false)
+                    .record(false);
                 ConversationRoomViewModel provider =
                     context.read<ConversationRoomViewModel>();
                 Future.delayed(
@@ -165,18 +198,31 @@ class InputMenu extends BaseStateless {
                     Future.delayed(
                       const Duration(seconds: 1),
                       () async {
-                        if (provider.isSendAutomaticMessage) {
+                        if (provider.isSendAutomaticMessage &&
+                            provider.askController.text.isNotEmpty) {
                           context
                               .read<ConversationRoomViewModel>()
                               .changeEmptyTextStatus(true);
-                          provider.addToChatList(provider.askController.text);
-                          if (provider.askController.text.isNotEmpty) {
-                            await provider.sendMessage(
-                              context,
-                              message: context.read<SpeechProvider>().lastWords,
-                              conversationId: conversationId,
-                            );
-                          }
+                          provider.addToChatList(provider.askController.text,
+                              (provider.chats[0].id! + 1).toString());
+                          analyticInstance.logEvent(
+                              name: 'start_messaging_voice');
+                          context
+                              .read<ConversationRoomViewModel>()
+                              .firstConversationInfo(context);
+                          viewModel.askFocusNode.unfocus();
+                          context.read<BottomMenuViewModel>().openClue(false);
+                          context.read<BottomMenuViewModel>().openTask(false);
+                          await provider.sendMessage(
+                            context,
+                            message: context.read<SpeechProvider>().lastWords,
+                            conversationId: conversationId,
+                            path:
+                                context.read<ConversationRoomViewModel>().path,
+                          );
+
+                          context.read<SpeechProvider>().lastWords = "";
+                          provider.askController.text = "";
                         }
                       },
                     );

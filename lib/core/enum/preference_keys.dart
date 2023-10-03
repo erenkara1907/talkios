@@ -1,1 +1,6 @@
-enum PreferencesKeys { TOKEN, LANGUAGE }
+enum PreferencesKeys {
+  TOKEN,
+  LANGUAGE,
+  IS_FIRST_CONVERSATION,
+  IS_FIRST_VOCABULARY
+}

@@ -36,4 +36,7 @@ class ApiConstant {
 
   // Category
   String categoryUrl = '$baseUrl/categories';
+
+  // PlayerId
+  String playerId = "$baseUrl/notifications/update-one-signal-player-id";
 }

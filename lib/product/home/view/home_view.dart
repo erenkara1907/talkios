@@ -1,17 +1,21 @@
 // ignore_for_file: use_key_in_widget_constructors, must_be_immutable
 
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:talkios/core/util/connectivity_service.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
 import 'package:talkios/product/conversation/view/conversation_view.dart';
 import 'package:talkios/product/home/home_view_model.dart';
 import 'package:talkios/product/home/view/scenario_detail_view.dart';
 
+import '../../../core/constant/config_constant.dart';
 import '../../../core/util/provider/image/image_upload_view_model.dart';
 import '../../../core/view/widget/button/app_button.dart';
 import '../../profile/view/profile_view.dart';
@@ -21,7 +25,13 @@ class HomeView extends BaseStateless {
 
   @override
   Widget build(BuildContext context) {
-    return home();
+    return Provider.of<ConnectivityService>(context, listen: true)
+                .connectionStatus ==
+            ConnectionStatus.Online
+        ? home()
+        : Center(
+            child: Lottie.asset(lottie.networkError),
+          );
   }
 
   Widget home() {
@@ -144,7 +154,7 @@ class HomeView extends BaseStateless {
   }
 
   Scaffold homeView(BuildContext context) {
-    return Scaffold(
+    return Scaffold( 
       backgroundColor: color.background,
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14.0),
@@ -265,6 +275,13 @@ class HomeView extends BaseStateless {
                   ),
                 ),
                 onPressed: () {
+                  String scenarioName =
+                      viewModel.scenarios[index].title!.toLowerCase();
+                  String formattedScenarioName =
+                      scenarioName.replaceAll(' ', '_');
+                  analyticInstance.logEvent(
+                      name: 'scenario_selection_$formattedScenarioName');
+                  context.read<HomeViewModel>().setConversationId(-1);
                   push(
                     context,
                     ScenarioDetailView(
@@ -343,25 +360,91 @@ class HomeView extends BaseStateless {
         viewModel.scenarios[index].isLocked == 0
             ? const Center()
             : Positioned.fill(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SvgPicture.asset(icon.lock),
-                    spacer(height: 10.0),
-                    Text(
-                      "Complete level $index to unlock.",
-                      style: currentTextTheme(context).bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: color.dark60,
-                            fontSize: 14.0,
-                            fontFamily: font.medium,
-                          ),
-                    )
-                  ],
+                child: InkWell(
+                  onTap: () {
+                    if (viewModel.scenarios[index].isLocked == 1) {
+                      lockScenarioInfo(context);
+                    }
+                  },
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SvgPicture.asset(icon.lock),
+                      spacer(height: 10.0),
+                      Text(
+                        "Complete level $index to unlock.",
+                        style: currentTextTheme(context).bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: color.dark60,
+                              fontSize: 14.0,
+                              fontFamily: font.medium,
+                            ),
+                      )
+                    ],
+                  ),
                 ),
               ),
       ],
+    );
+  }
+
+  Future<dynamic> lockScenarioInfo(BuildContext context) {
+    return showDialog(
+      context: context,
+      barrierColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 3.0, sigmaY: 3.0),
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 5,
+            shadowColor: Colors.transparent,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Image.asset(image.union),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40.0,
+                    vertical: 30.0,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SvgPicture.asset(icon.lockScenario),
+                      spacer(height: 12.0),
+                      Text(
+                        "Level unlock",
+                        style: currentTextTheme(context).bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: color.dark100,
+                              fontSize: 18.0,
+                              fontFamily: font.semiBold,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                      spacer(height: 11.0),
+                      Text(
+                        "Collect all stars from the previous level to open a new scenario.",
+                        style: currentTextTheme(context).bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: color.dark50,
+                              fontSize: 12.0,
+                              fontFamily: font.medium,
+                            ),
+                        textAlign: TextAlign.center,
+                      )
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -375,8 +458,8 @@ class HomeView extends BaseStateless {
           children: [
             headerChip(
               context,
-              "1",
-              icon.mission,
+              viewModel.completeScenario.length.toString(),
+              icon.mission, 
               color.pink.withOpacity(0.3),
               color.pink,
             ),

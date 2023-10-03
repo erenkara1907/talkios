@@ -32,6 +32,8 @@ class ProfileViewModel extends ChangeNotifier {
   final ProfileService _service = ProfileService();
 
   // Variables
+  TextEditingController nameController = TextEditingController();
+
   int _buttonIndex = -1;
   int get buttonIndex => _buttonIndex;
 
@@ -73,6 +75,9 @@ class ProfileViewModel extends ChangeNotifier {
 
   bool _isReminder = false;
   bool get isReminder => _isReminder;
+
+  final String _getNotification = "";
+  String get getNotification => _getNotification;
 
   // Levels
   List<EnglishLevelModel> levels = [
@@ -216,10 +221,40 @@ class ProfileViewModel extends ChangeNotifier {
     String? token = CacheManager().getString(PreferencesKeys.TOKEN.toString());
     final response = await _service.updateProfileInfo(token!, info);
     if (response.result!) {
+    } else {
       showTopSnackBar(
         Overlay.of(context),
         const CustomSnackBar.success(
-          message: "Success",
+          message: "Something Went Wrong",
+        ),
+      );
+    }
+  }
+
+  Future updateBoolValue(
+      BuildContext context, Map<String, dynamic> info) async {
+    String? token = CacheManager().getString(PreferencesKeys.TOKEN.toString());
+    final response = await _service.updateProfileInfo(token!, info);
+    if (response.result!) {
+    } else {
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.success(
+          message: "Something Went Wrong",
+        ),
+      );
+    }
+  }
+
+  Future updateName(BuildContext context, String name) async {
+    String? token = CacheManager().getString(PreferencesKeys.TOKEN.toString());
+    final response = await _service.updateName(token!, name);
+    if (response.result!) {
+    } else {
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.success(
+          message: "Something Went Wrong",
         ),
       );
     }
@@ -242,6 +277,11 @@ class ProfileViewModel extends ChangeNotifier {
 
   void showModal(bool isProfile) {
     _isProfilePhoto = isProfile;
+    notifyListeners();
+  }
+
+  void defaultNotification(bool value) {
+    _isNotification = value;
     notifyListeners();
   }
 
@@ -318,7 +358,14 @@ class ProfileViewModel extends ChangeNotifier {
     BuildContext context,
     String modelListType,
     ProfileModel profileModel,
+    String modelValue,
   ) {
+    final scrollController = FixedExtentScrollController(
+        initialItem: findSelectedIndex(
+      modelListType,
+      modelValue,
+    ));
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (BuildContext context) {
@@ -339,12 +386,18 @@ class ProfileViewModel extends ChangeNotifier {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     CupertinoButton(
-                      child: const Text("İptal"),
+                      child: const Text("Cancel"),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     CupertinoButton(
-                      child: const Text("Tamam"),
+                      child: const Text("Done"),
                       onPressed: () async {
+                        if (languageCode.isNotEmpty) {
+                          await CacheManager().setString(
+                            PreferencesKeys.LANGUAGE.toString(),
+                            language,
+                          );
+                        }
                         // Seçilen dili işleyin (örn. bir durum yönetimi aracı veya başka bir şekilde kaydedin)
                         await updateProfileInfo(
                           context,
@@ -380,9 +433,13 @@ class ProfileViewModel extends ChangeNotifier {
               const Divider(),
               Expanded(
                 child: CupertinoPicker(
+                  scrollController: scrollController,
                   backgroundColor: Colors.white,
-                  onSelectedItemChanged: (int index) =>
-                      selectListItem(context, modelListType, index),
+                  onSelectedItemChanged: (int index) => selectListItem(
+                    context,
+                    modelListType,
+                    index,
+                  ),
                   itemExtent: 30.0,
                   children: selectList(modelListType).toList(),
                 ),
@@ -392,6 +449,25 @@ class ProfileViewModel extends ChangeNotifier {
         );
       },
     );
+  }
+
+  int findSelectedIndex(String listType, String selectedValue) {
+    switch (listType) {
+      case "Level":
+        return levels.indexWhere((item) {
+          return item.text == selectedValue;
+        });
+      case "Time":
+        return times.indexWhere((item) {
+          return item.time == selectedValue;
+        });
+      case "Language":
+        return languages.indexWhere((item) => item.text == selectedValue);
+      case "Practice":
+        return practices.indexOf(selectedValue);
+      default:
+        return 0;
+    }
   }
 
   Future<String> selectListItem(
@@ -446,8 +522,8 @@ class ProfileViewModel extends ChangeNotifier {
     }
   }
 
-  void showEditProfile(
-      BuildContext context, String profilePhoto, String username) {
+  void showEditProfile(BuildContext context, String profilePhoto,
+      String username, TextEditingController controller) {
     Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(
         opaque: false,
@@ -462,7 +538,7 @@ class ProfileViewModel extends ChangeNotifier {
                   builder: (context, isProfile, child) {
                     return isProfile
                         ? profileModal(context, profilePhoto)
-                        : usernameModal(username, context);
+                        : usernameModal(username, context, controller);
                   },
                   selector: (context, state) => state.isProfilePhoto,
                 ),
@@ -477,7 +553,13 @@ class ProfileViewModel extends ChangeNotifier {
     );
   }
 
-  Center usernameModal(String username, BuildContext context) {
+  void setName(String name) {
+    nameController.text = name;
+    notifyListeners();
+  }
+
+  Center usernameModal(
+      String username, BuildContext context, TextEditingController controller) {
     return Center(
       child: Hero(
         tag: "username",
@@ -486,15 +568,22 @@ class ProfileViewModel extends ChangeNotifier {
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: TextFormField(
+              controller: controller,
               style: TextStyle(
                 color: ColorConstant.instance.dark100,
                 fontWeight: FontWeight.w400,
                 fontSize: 14.0,
                 fontFamily: FontConstant.instance.regular,
               ),
-              initialValue: username,
               textAlign: TextAlign.center,
-              onEditingComplete: () {
+              onTapOutside: (_) {
+                updateName(
+                  context,
+                  controller.text,
+                );
+
+                notifyListeners();
+
                 Navigator.of(context).pop();
               },
             ),
