@@ -207,12 +207,12 @@ class ProfileViewModel extends ChangeNotifier {
         icon: IconConstant.instance.personalInformation),
     ButtonModel(
         text: "Account Settings", icon: IconConstant.instance.accountSettings),
-    ButtonModel(text: "Your Level", icon: IconConstant.instance.award),
-    ButtonModel(text: "Statistics", icon: IconConstant.instance.statistics),
-    ButtonModel(text: "Language", icon: IconConstant.instance.language),
+    // ButtonModel(text: "Your Level", icon: IconConstant.instance.award),
+    // ButtonModel(text: "Statistics", icon: IconConstant.instance.statistics),
+    // ButtonModel(text: "Language", icon: IconConstant.instance.language),
     ButtonModel(text: "Write Us", icon: IconConstant.instance.writeUs),
-    ButtonModel(
-        text: "Terms and Conditions", icon: IconConstant.instance.terms),
+    // ButtonModel(
+    //     text: "Terms and Conditions", icon: IconConstant.instance.terms),
   ];
 
   // Functions
@@ -298,7 +298,8 @@ class ProfileViewModel extends ChangeNotifier {
   void logOut(BuildContext context) {
     String? token = CacheManager().getString(PreferencesKeys.TOKEN.toString());
     if (token!.isNotEmpty) {
-      CacheManager().clear();
+      // CacheManager().clear();
+      CacheManager().remove(PreferencesKeys.TOKEN.toString());
       Future.delayed(const Duration(milliseconds: 300), () {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const WelcomeView()),
@@ -341,6 +342,68 @@ class ProfileViewModel extends ChangeNotifier {
         );
         break;
       case 2:
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                child: Dialog(
+                  child: Container(
+                    width: (MediaQuery.of(context).size.width) - 48.0,
+                    decoration: BoxDecoration(
+                      color: ColorConstant.instance.background,
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Image.asset(
+                            IconConstant.instance.appIcon,
+                            width: 35.0,
+                            height: 35.0,
+                          ),
+                          const SizedBox(height: 5.0),
+                          Text(
+                            "Write Us",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: ColorConstant.instance.dark100,
+                              fontSize: 18.0,
+                              fontFamily: FontConstant.instance.semiBold,
+                            ),
+                          ),
+                          const SizedBox(height: 10.0),
+                          Text(
+                            "We value your experience and are committed to making it better. Whether you have feedback, questions, or need support, we're here to listen.",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: ColorConstant.instance.dark90,
+                              fontSize: 16.0,
+                              fontFamily: FontConstant.instance.semiBold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 5.0),
+                          Text(
+                            "talkiosapp@gmail.com",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: ColorConstant.instance.dark100,
+                              fontSize: 14.0,
+                              fontFamily: FontConstant.instance.semiBold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ));
+          },
+        );
         break;
       case 3:
         break;

@@ -3,6 +3,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -11,20 +12,54 @@ import 'package:talkios/core/view/widget/button/app_button.dart';
 import 'package:talkios/product/conversation/view/conversation_room_view.dart';
 import 'package:talkios/product/conversation/viewmodel/conversation_room_view_model.dart';
 import 'package:talkios/product/conversation/viewmodel/conversation_view_model.dart';
-import 'package:talkios/product/home/view/home_view.dart';
+import 'package:talkios/product/home/view/scenario_detail_view.dart';
 
 import '../../../core/util/connectivity_service.dart';
+import '../../home/model/scenario_model.dart';
+import '../../home/view/new_home_view.dart';
 
 class ConversationView extends BaseStateless {
   ConversationViewModel viewModel = ConversationViewModel();
-  final String userProfilePhoto;
-  final int score;
+  final String? userProfilePhoto;
+  final int? score;
+  final String? subTitle;
+  final String? scenarioDescription;
+  final String? tagId;
+  final int? scenarioId;
+  final String? aiProfilePhoto;
+  final List<WordScenario>? words;
+  final String? scenarioName;
+  final String? level;
+  final String? gender;
+  final bool? isConversation;
+  final int? conversationId;
+  final int? conversationIsActive;
 
   ConversationView({
     super.key,
-    required this.userProfilePhoto,
-    required this.score,
+    this.userProfilePhoto,
+    this.score,
+    this.subTitle,
+    this.scenarioDescription,
+    this.tagId,
+    this.scenarioId,
+    this.aiProfilePhoto,
+    this.words,
+    this.scenarioName,
+    this.level,
+    this.gender,
+    this.isConversation,
+    this.conversationId,
+    this.conversationIsActive,
   });
+
+  List<Color> buttonColors = [
+    const Color.fromRGBO(164, 237, 236, 1),
+    const Color.fromRGBO(159, 121, 218, 1),
+    const Color.fromRGBO(153, 187, 246, 1),
+    const Color.fromRGBO(251, 233, 146, 1),
+    const Color.fromRGBO(245, 184, 133, 1),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -160,10 +195,31 @@ class ConversationView extends BaseStateless {
                         AppButton(
                           widthValue: width(context: context, value: 0.5),
                           heightValue: height(context: context, value: 0.07),
-                          text: "Browse Scenarios",
+                          text: "Start a New Chat",
                           borderRadius: 66.0,
                           backgroundColor: color.dark100,
-                          onPressed: () => back(context),
+                          onPressed: () {
+                            push(
+                              context,
+                              ScenarioDetailView(
+                                isActive: 1,
+                                colorValue: color.cyan,
+                                gender: gender!,
+                                subTitle: subTitle!,
+                                scenarioDescription: scenarioDescription!,
+                                tagId: tagId!,
+                                scenarioId: scenarioId!,
+                                userProfilePhoto: userProfilePhoto!,
+                                aiProfilePhoto: aiProfilePhoto!,
+                                words: words!,
+                                scenarioName: scenarioName!,
+                                level: level!,
+                                score: score!,
+                                isConversation: isConversation!,
+                                conversationId: conversationId!,
+                              ),
+                            );
+                          },
                           textStyle:
                               currentTextTheme(context).bodyLarge?.copyWith(
                                     fontWeight: FontWeight.w400,
@@ -192,130 +248,283 @@ class ConversationView extends BaseStateless {
           physics: const ClampingScrollPhysics(),
           itemCount: viewModel.conversations.length,
           itemBuilder: (context, index) {
+            int colorIndex = index % 5;
             return Padding(
               padding: const EdgeInsets.only(bottom: 20.0),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: color.background,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
+              child: Stack(
+                children: [
+                  Container(
+                    width: width(context: context, value: 1.0),
+                    height: 107.0,
+                    decoration: BoxDecoration(
+                      color: const Color.fromRGBO(243, 243, 245, 1),
                       borderRadius: BorderRadius.circular(10.0),
-                    )),
+                    ),
+                  ),
+                  SizedBox(
+                    width: width(context: context, value: 1.0),
+                    height: 107.0,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        splashFactory: NoSplash.splashFactory,
+                        shadowColor: Colors.transparent,
+                        elevation: 0,
+                        backgroundColor:
+                            buttonColors[colorIndex].withOpacity(0.6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                      ),
+                      onPressed: () {
+                        context
+                            .read<ConversationRoomViewModel>()
+                            .continueChat(false);
+                        push(
+                          context,
+                          ConversationRoomView(
+                              isActive:
+                                  viewModel.conversations[index].isActive!,
+                              gender: viewModel
+                                  .conversations[index].scenario!.gender!,
+                              fromWhere: "",
+                              score: score!,
+                              scenarioName: viewModel
+                                  .conversations[index].scenario!.title!,
+                              aiProfilePhoto: viewModel
+                                  .conversations[index].scenario!.icon!,
+                              userProfilePhoto: userProfilePhoto!,
+                              conversationId:
+                                  viewModel.conversations[index].id!),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 13.0, vertical: 25.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SvgPicture.network(
+                                viewModel.conversations[index].scenario!.icon!,
+                                width: 89.0,
+                                height: 56.0),
+                            spacer(width: 14.0),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  viewModel
+                                      .conversations[index].scenario!.title!,
+                                  style: currentTextTheme(context)
+                                      .bodyLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                        color: color.dark100,
+                                        fontSize: 16.0,
+                                        fontFamily: font.medium,
+                                      ),
+                                ),
+                                spacer(height: 5.0),
+                                Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 106.0,
+                                      child: ClipRRect(
+                                        borderRadius:
+                                            BorderRadius.circular(10.0),
+                                        child: LinearProgressIndicator(
+                                          minHeight: 16.0,
+                                          value: double.parse(viewModel
+                                              .conversations[index]
+                                              .conversationCompletionCount!),
+                                          backgroundColor: const Color.fromRGBO(
+                                              36, 39, 47, 0.1),
+                                          valueColor: AlwaysStoppedAnimation(
+                                              buttonColors[colorIndex]),
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      left: 10.0,
+                                      child: Text(
+                                        "%${(double.parse(viewModel.conversations[index].conversationCompletionCount!) * 100).toInt()}",
+                                        style: currentTextTheme(context)
+                                            .bodyLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w400,
+                                              color: color.background,
+                                              fontSize: 12.0,
+                                              fontFamily: font.regular,
+                                            ),
+                                      ),
+                                    )
+                                  ],
+                                )
+                              ],
+                            ),
+                            const Expanded(child: SizedBox()),
+                            IconButton(
+                              onPressed: () {
+                                context
+                                    .read<ConversationRoomViewModel>()
+                                    .continueChat(false);
+                                push(
+                                  context,
+                                  ConversationRoomView(
+                                      isActive: viewModel
+                                          .conversations[index].isActive!,
+                                      gender: viewModel.conversations[index]
+                                          .scenario!.gender!,
+                                      fromWhere: "",
+                                      score: score!,
+                                      scenarioName: viewModel
+                                          .conversations[index]
+                                          .scenario!
+                                          .title!,
+                                      aiProfilePhoto: viewModel
+                                          .conversations[index].scenario!.icon!,
+                                      userProfilePhoto: userProfilePhoto!,
+                                      conversationId:
+                                          viewModel.conversations[index].id!),
+                                );
+                              },
+                              icon: Icon(icon.arrowForward),
+                              color: color.softPurple,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Padding sample(BuildContext context, int index) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+            backgroundColor: color.background,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.0),
+            )),
+        onPressed: () {
+          context.read<ConversationRoomViewModel>().continueChat(false);
+          push(
+            context,
+            ConversationRoomView(
+                isActive: viewModel.conversations[index].isActive!,
+                gender: viewModel.conversations[index].scenario!.gender!,
+                fromWhere: "",
+                score: score!,
+                scenarioName: viewModel.conversations[index].scenario!.title!,
+                aiProfilePhoto: viewModel.conversations[index].scenario!.icon!,
+                userProfilePhoto: userProfilePhoto!,
+                conversationId: viewModel.conversations[index].id!),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: 10.0,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 35.0,
+                    backgroundImage: CachedNetworkImageProvider(
+                      viewModel.conversations[index].scenario!.icon!,
+                    ),
+                  ),
+                  spacer(width: 15.0),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        viewModel.conversations[index].scenario!.title!,
+                        style: currentTextTheme(context).bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: color.dark100,
+                              fontSize: 16.0,
+                              fontFamily: font.medium,
+                            ),
+                      ),
+                      spacer(height: 3.0),
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 106.0,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10.0),
+                              child: LinearProgressIndicator(
+                                minHeight: 16.0,
+                                value: double.parse(viewModel
+                                    .conversations[index]
+                                    .conversationCompletionCount!),
+                                backgroundColor:
+                                    const Color.fromRGBO(36, 39, 47, 0.1),
+                                valueColor: AlwaysStoppedAnimation(color.cyan),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 10.0,
+                            child: Text(
+                              "%${(double.parse(viewModel.conversations[index].conversationCompletionCount!) * 100).toInt()}",
+                              style:
+                                  currentTextTheme(context).bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w400,
+                                        color: color.background,
+                                        fontSize: 12.0,
+                                        fontFamily: font.regular,
+                                      ),
+                            ),
+                          )
+                        ],
+                      )
+                    ],
+                  ),
+                ],
+              ),
+              IconButton(
                 onPressed: () {
                   context.read<ConversationRoomViewModel>().continueChat(false);
                   push(
                     context,
                     ConversationRoomView(
+                        isActive: viewModel.conversations[index].isActive!,
+                        gender:
+                            viewModel.conversations[index].scenario!.gender!,
                         fromWhere: "",
-                        score: score,
+                        score: score!,
                         scenarioName:
                             viewModel.conversations[index].scenario!.title!,
                         aiProfilePhoto:
                             viewModel.conversations[index].scenario!.icon!,
-                        userProfilePhoto: userProfilePhoto,
+                        userProfilePhoto: userProfilePhoto!,
                         conversationId: viewModel.conversations[index].id!),
                   );
                 },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 10.0,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 35.0,
-                            backgroundImage: CachedNetworkImageProvider(
-                              viewModel.conversations[index].scenario!.icon!,
-                            ),
-                          ),
-                          spacer(width: 15.0),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                viewModel.conversations[index].scenario!.title!,
-                                style: currentTextTheme(context)
-                                    .bodyLarge
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w500,
-                                      color: color.dark100,
-                                      fontSize: 16.0,
-                                      fontFamily: font.medium,
-                                    ),
-                              ),
-                              spacer(height: 3.0),
-                              Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 106.0,
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(10.0),
-                                      child: LinearProgressIndicator(
-                                        minHeight: 16.0,
-                                        value: double.parse(viewModel
-                                            .conversations[index]
-                                            .conversationCompletionCount!),
-                                        backgroundColor: const Color.fromRGBO(
-                                            36, 39, 47, 0.1),
-                                        valueColor:
-                                            AlwaysStoppedAnimation(color.cyan),
-                                      ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    left: 10.0,
-                                    child: Text(
-                                      "%${(double.parse(viewModel.conversations[index].conversationCompletionCount!) * 100).toInt()}",
-                                      style: currentTextTheme(context)
-                                          .bodyLarge
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w400,
-                                            color: color.background,
-                                            fontSize: 12.0,
-                                            fontFamily: font.regular,
-                                          ),
-                                    ),
-                                  )
-                                ],
-                              )
-                            ],
-                          ),
-                        ],
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          context
-                              .read<ConversationRoomViewModel>()
-                              .continueChat(false);
-                          push(
-                            context,
-                            ConversationRoomView(
-                                fromWhere: "",
-                                score: score,
-                                scenarioName: viewModel
-                                    .conversations[index].scenario!.title!,
-                                aiProfilePhoto: viewModel
-                                    .conversations[index].scenario!.icon!,
-                                userProfilePhoto: userProfilePhoto,
-                                conversationId:
-                                    viewModel.conversations[index].id!),
-                          );
-                        },
-                        icon: Icon(icon.arrowForward),
-                        color: color.dark100,
-                      ),
-                    ],
-                  ),
-                ),
+                icon: Icon(icon.arrowForward),
+                color: color.dark100,
               ),
-            );
-          },
+            ],
+          ),
         ),
       ),
     );
@@ -331,7 +540,7 @@ class ConversationView extends BaseStateless {
           child: IconButton(
             onPressed: () {
               HapticFeedback.heavyImpact();
-              push(context, HomeView());
+              push(context, const HomeView());
             },
             icon: Icon(icon.arrowBack),
           ),

@@ -22,7 +22,7 @@ class LevelView extends BaseStateless {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10.0),
           child: Text(
-            "How is your English level?",
+            "What is your English level?",
             style: currentTextTheme(context).bodyLarge?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: color.dark100,

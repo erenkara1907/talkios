@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:talkios/core/cache/cache_manager.dart';
 import 'package:talkios/core/enum/preference_keys.dart';
+import 'package:talkios/core/util/provider/vocabulary_state.dart';
+import 'package:talkios/product/vocabulary/view/complete_word_view.dart';
 import 'package:talkios/product/vocabulary/vocabulary_service.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
@@ -31,34 +33,92 @@ class VocabularyViewModel extends ChangeNotifier {
   bool _isRecord = false;
   bool get isRecord => _isRecord;
 
-  bool _isGlowAnimate = false;
-  bool get isGlowAnimate => _isGlowAnimate;
-
   bool _isVisibleGif = false;
   bool get isVisibleGif => _isVisibleGif;
 
   String voiceMessage = "";
 
+  bool _isScore = false;
+  bool get isScore => _isScore;
+
+  double _indicatorValue = 0.0;
+  double get indicatorValue => _indicatorValue;
+
+  bool _onTapVoiceButton = false;
+  bool get onTapVoiceButton => _onTapVoiceButton;
+  
+  int _completeWordCount = 1;
+  int get completeWordCount => _completeWordCount;
+
+  int _completeWordCountV2 = 0;
+  int get completeWordCountV2 => _completeWordCountV2;
+
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
+
+  bool _isComplete = false;
+  bool get isComplete => _isComplete;
+
+  set isComplete(bool value) {
+    _isComplete = value;
+    notifyListeners();
+  }
+
+  set isLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
+  }
+
+  set completeWordCountV2(int value) {
+    _completeWordCountV2 = value;
+  }
+
+  set completeWordCount(int value) {
+    _completeWordCount = value;
+    notifyListeners();
+  }
+
+  set onTapVoiceButton(bool value) {
+    _onTapVoiceButton = value;
+    notifyListeners();
+  }
+
+  set indicatorValue(double value) {
+    _indicatorValue = value;
+    notifyListeners();
+  }
+
+  set isScore(bool value) {
+    _isScore = value;
+    notifyListeners();
+  }
+
   final VocabularyService _service = VocabularyService();
   final SoundRecorderService _soundService = SoundRecorderService();
+
+  PageController pageController = PageController();
 
   void showGif() async {
     bool? _isFirst =
         CacheManager().getBool(PreferencesKeys.IS_FIRST_VOCABULARY.toString());
-    if (_isFirst!) {
-      _isVisibleGif = true;
-      notifyListeners();
+    if (_isFirst != null) {
+      if (_isFirst) {
+        _isVisibleGif = true;
+        notifyListeners();
+      }
     }
   }
 
   void hideGif() async {
     bool? _isFirst =
         CacheManager().getBool(PreferencesKeys.IS_FIRST_VOCABULARY.toString());
-    if (_isFirst!) {
-      _isVisibleGif = false;
-      await CacheManager()
-          .setBool(PreferencesKeys.IS_FIRST_VOCABULARY.toString(), false);
-      notifyListeners();
+    if (_isFirst != null) {
+      if (_isFirst) {
+        _isVisibleGif = false;
+        await CacheManager()
+            .setBool(PreferencesKeys.IS_FIRST_VOCABULARY.toString(), false);
+        notifyListeners();
+      }
     }
   }
 
@@ -70,7 +130,7 @@ class VocabularyViewModel extends ChangeNotifier {
   }
 
   void cardIndex(int index) {
-    _currentCardIndex = index;
+    _currentCardIndex = index; 
     notifyListeners();
   }
 
@@ -89,11 +149,6 @@ class VocabularyViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void glowAnimate(bool value) {
-    _isGlowAnimate = value;
-    notifyListeners();
-  }
-
   Future<void> startRecording() async {
     await _soundService.init();
     _path = await _soundService.startRecording();
@@ -106,21 +161,20 @@ class VocabularyViewModel extends ChangeNotifier {
   }
 
   Future<void> stopRecording(BuildContext context, String voiceMessage,
-      String wordId, int conversationId) async {
+      String wordId, int conversationId, int wordLength) async {
     await _soundService.stopRecording();
     _path = _soundService.currentPath;
     if (context.read<SpeechProvider>().lastWords.isNotEmpty) {
-      await pronunciationCheck(context, voiceMessage, wordId, conversationId);
+      await pronunciationCheck(
+        context,
+        voiceMessage,
+        wordId,
+        conversationId,
+        wordLength,
+      );
     } else {
       record(false);
-      glowAnimate(false);
       stopRecord();
-      showTopSnackBar(
-        Overlay.of(context),
-        const CustomSnackBar.error(
-          message: "Please record audio",
-        ),
-      );
     }
 
     notifyListeners();
@@ -157,7 +211,9 @@ class VocabularyViewModel extends ChangeNotifier {
     String voiceMessage,
     String wordId,
     int conversationId,
+    int wordLength,
   ) async {
+    isLoading = true;
     String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
     var params = {
       "connect": {
@@ -216,10 +272,53 @@ class VocabularyViewModel extends ChangeNotifier {
           notifyListeners();
 
           await updateScore(_score, wordId, conversationId);
+
+          print("completeCount : $completeWordCount");
+          isScore = true;
+          isLoading = false;
+          context.read<SpeechProvider>().lastWords = "";
           Future.delayed(
-            const Duration(milliseconds: 1500),
+            const Duration(seconds: 2),
             () {
-              context.read<VocabularyViewModel>().hideGif();
+              // context.read<VocabularyViewModel>().hideGif();
+              context.read<VocabularyState>().completeWord(voiceMessage);
+
+              if (completeWordCount < 5) {
+                completeWordCount += 1;
+                completeWordCountV2 += 1;
+                pageController.nextPage(
+                    duration: const Duration(seconds: 1),
+                    curve: Curves.easeInOut);
+              }
+
+              print("completeWordCount : $completeWordCount");
+
+              if (completeWordCountV2 == wordLength) {
+                completeWordCountV2 = 0;
+                completeWordCount = 1;
+                isComplete = false;
+                indicatorValue = 0.0;
+                context.read<SpeechProvider>().lastWords = "";
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                      builder: (context) => const CompleteWordView()),
+                  (Route<dynamic> route) => false,
+                );
+              }
+
+              isScore = false;
+
+              switch (wordLength) {
+                case 4:
+                  return indicatorValue += 0.25;
+                case 3:
+                  return indicatorValue += 0.33;
+                case 2:
+                  return indicatorValue += 0.5;
+                case 1:
+                  return indicatorValue += 1;
+                default:
+              }
             },
           );
         } else {

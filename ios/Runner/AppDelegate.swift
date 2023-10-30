@@ -38,18 +38,28 @@ class SpeechStatusStreamHandler: NSObject, FlutterStreamHandler {
             return
         }
 
-        if let myArgs = args as? [String: Any], let text = myArgs["text"] as? String {
-            let utterance = AVSpeechUtterance(string: text)
-            if let aaronVoice = AVSpeechSynthesisVoice(identifier: "com.apple.voice.compact.en-US.Samantha") {
-                utterance.voice = aaronVoice
-            }
-
-            self.synthesizer.delegate = self
-            self.synthesizer.speak(utterance)
-            result(nil) // Bu satırı ekleyin. Method çağrısının tamamlandığını belirtir.
-        } else {
-            result(FlutterError(code: "INVALID_TEXT", message: "No text provided.", details: nil))
-        }
+if let myArgs = args as? [String: Any],
+                   let text = myArgs["text"] as? String,
+                   let gender = myArgs["gender"] as? String { // 'gender' argümanını elde edin
+                    
+                    let utterance = AVSpeechUtterance(string: text)
+                    
+                    var voiceIdentifier = "com.apple.voice.compact.en-US.Samantha" // Default olarak Samantha'yı ayarlayın
+                    
+                    if gender == "male" {
+                        voiceIdentifier = "com.apple.voice.compact.en-US.Matthew" // Matthew sesini kullanın
+                    }
+                    
+                    if let selectedVoice = AVSpeechSynthesisVoice(identifier: voiceIdentifier) {
+                        utterance.voice = selectedVoice
+                    }
+                    
+                    self.synthesizer.delegate = self
+                    self.synthesizer.speak(utterance)
+                    result(nil)
+                } else {
+                    result(FlutterError(code: "INVALID_TEXT", message: "No text or gender provided.", details: nil))
+                }
     case "stopText":
         self.synthesizer.stopSpeaking(at: .immediate)
         result(nil)  // Method çağrısının tamamlandığını belirtir.

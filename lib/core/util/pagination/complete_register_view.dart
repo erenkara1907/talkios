@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:talkios/core/view/base/base_state.dart';
 import 'package:talkios/product/auth/register/register_view_model.dart';
 
-import '../../../product/home/view/home_view.dart';
+import '../../../product/home/view/new_home_view.dart';
 
 class CompleteRegisterView extends StatefulWidget {
   const CompleteRegisterView({super.key});
@@ -37,7 +37,7 @@ class _CompleteRegisterViewState extends BaseState<CompleteRegisterView>
           viewModel.setIndexToTimeButton(-1);
           viewModel.setPage(0);
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => HomeView()),
+            MaterialPageRoute(builder: (context) => const HomeView()),
             (Route<dynamic> route) => false,
           );
         }

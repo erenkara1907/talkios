@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, no_leading_underscores_for_local_identifiers, unused_field, unrelated_type_equality_checks
+// ignore_for_file: use_build_context_synchronously, no_leading_underscores_for_local_identifiers, unused_field, unrelated_type_equality_checks, prefer_final_fields
 
 import 'dart:async';
 import 'dart:convert';
@@ -10,20 +10,20 @@ import 'package:provider/provider.dart';
 import 'package:talkios/core/cache/cache_manager.dart';
 import 'package:talkios/core/constant/sound_constant.dart';
 import 'package:talkios/core/enum/preference_keys.dart';
+import 'package:talkios/core/util/provider/chat_tools_provider.dart';
 import 'package:talkios/product/conversation/conversation_service.dart';
 import 'package:talkios/product/conversation/model/chat_model.dart';
 import 'package:talkios/product/conversation/model/suggest_model.dart';
 import 'package:talkios/product/conversation/model/task_model.dart';
 import 'package:talkios/product/conversation/model/translation_model.dart';
-import 'package:talkios/product/home/view/home_view.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 import '../../../core/constant/config_constant.dart';
-import '../../../core/util/provider/sound/dubbing_provider.dart';
 import '../../../core/util/provider/sound/sound_recorder_service.dart';
+import '../../home/view/new_home_view.dart';
 
-class ConversationRoomViewModel extends ChangeNotifier {
+class ConversationRoomViewModel with ChangeNotifier {
   // Package
   AudioPlayer player = AudioPlayer();
 
@@ -91,6 +91,12 @@ class ConversationRoomViewModel extends ChangeNotifier {
   bool _isPracticeLoading = false;
   bool get isPracticeLoading => _isPracticeLoading;
 
+  bool _isKeyboard = false;
+  bool get isKeyboard => _isKeyboard;
+
+  bool _onTapVoiceButton = false;
+  bool get onTapVoiceButton => _onTapVoiceButton;
+
   List<ChatModel> chats = [];
   SendMessageModel sendModel = SendMessageModel();
 
@@ -102,10 +108,52 @@ class ConversationRoomViewModel extends ChangeNotifier {
   String? _path = '';
   String get path => _path!;
 
+  String _betterSentence = "";
+  String get betterSentence => _betterSentence;
+
   // Function
+  set isPracticeRecord(bool value) {
+    _isPracticeRecord = value;
+    notifyListeners();
+  }
+
   Future<void> startRecording() async {
     await _soundService.init();
     _path = await _soundService.startRecording();
+    notifyListeners();
+  }
+
+  set onTapVoiceButton(bool value) {
+    _onTapVoiceButton = value;
+    notifyListeners();
+  }
+
+  set isKeyboard(bool value) {
+    _isKeyboard = value;
+    notifyListeners();
+  }
+
+  set soundUrl(String value) {
+    if (_soundUrl != value) {
+      _soundUrl = value;
+      notifyListeners();
+    }
+  }
+
+  set betterSentence(String value) {
+    _betterSentence = value;
+    notifyListeners();
+  }
+
+  set endChat(bool value) {
+    if (_endChat != value) {
+      _endChat = value;
+      notifyListeners();
+    }
+  }
+
+  void typing() {
+    _isTyping = !_isTyping;
     notifyListeners();
   }
 
@@ -114,10 +162,10 @@ class ConversationRoomViewModel extends ChangeNotifier {
   //   notifyListeners();
   // }
 
-  void practiceRecord() {
-    _isPracticeRecord = !_isPracticeRecord;
-    notifyListeners();
-  }
+  // void practiceRecord() {
+  //   _isPracticeRecord = !_isPracticeRecord;
+  //   notifyListeners();
+  // }
 
   void practiceLoading() {
     _isPracticeLoading = !_isPracticeLoading;
@@ -139,24 +187,6 @@ class ConversationRoomViewModel extends ChangeNotifier {
     _isTapUserVoice = !_isTapUserVoice;
     _isTapAIVoice = false;
     notifyListeners();
-  }
-
-  void firstConversationInfo(BuildContext context) {
-    bool? _isFirst = CacheManager()
-        .getBool(PreferencesKeys.IS_FIRST_CONVERSATION.toString());
-    DubbingProvider _dubbingProvider = DubbingProvider();
-
-    if (_isFirst != null) {
-      if (_isFirst) {
-        _isFirstConversation = true;
-        _dubbingProvider.stop();
-        context.read<DubbingProvider>().stop();
-        notifyListeners();
-      } else {
-        _isFirstConversation = false;
-        notifyListeners();
-      }
-    }
   }
 
   String getScoreStatus(int score) {
@@ -210,11 +240,6 @@ class ConversationRoomViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void typing() {
-    _isTyping = !_isTyping;
-    notifyListeners();
-  }
-
   void showWarning() {
     _isShowWarning = true;
     Future.delayed(
@@ -232,7 +257,10 @@ class ConversationRoomViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  int messageIdVal = -1;
+
   void addToChatList(String message, String messageId) {
+    messageIdVal = int.parse(messageId);
     chats.insert(
       0,
       ChatModel(id: int.parse(messageId), message: message, role: "user"),
@@ -300,90 +328,116 @@ class ConversationRoomViewModel extends ChangeNotifier {
     }
   }
 
-  // Future sendMessage(
-  //   BuildContext context, {
-  //   required String message,
-  //   required int conversationId,
-  //   String? path,
-  // }) async {
-  //   typing();
-  //   String? token = CacheManager().getString(PreferencesKeys.TOKEN.toString());
-  //   final response = await _service.sendMessage(
-  //     token!,
-  //     conversationId,
-  //     message,
-  //     path ?? "",
-  //   );
+  List<int> _indexesWithSound = [];
+  List<int> get indexesWithSound => _indexesWithSound;
 
-  //   if (response.last.endConversation == 0) {
-  //     _endChat = true;
-  //     notifyListeners();
-  //   }
+  int _lastIndex = -1;
 
-  //   chats.removeWhere((element) => element.message == "Loading");
+  void addToIndexList(int index) {
+    // _lastIndex += 2;
+    _indexesWithSound.add(index);
+    notifyListeners();
+  }
 
-  //   for (var item in response.reversed) {
-  //     await player.play(AssetSource(SoundConstant.instance.chatBubble));
-  //     chats.insert(0, item);
-  //   }
-
-  //   typing();
-  //   context
-  //       .read<DubbingProvider>()
-  //       .speak(chats[0].message, 0); // Message Dubbing
-
-  //   notifyListeners();
-  // }
-
-  Future sendMessage(
-    BuildContext context, {
+  Future<void> sendMessage({
+    required BuildContext context,
     required String message,
     required int conversationId,
+    required String gender,
     String? path,
+    required bool isVoice,
   }) async {
+    // Close Chat State
+    context.read<ChatToolsProvider>().isTranslate = false;
+    context.read<ChatToolsProvider>().isTip = false;
+    context.read<ChatToolsProvider>().isPronunciation = false;
+
     typing();
+
     String? token = CacheManager().getString(PreferencesKeys.TOKEN.toString());
+    if (token == null) throw "Token is null";
 
-    SendMessageModel? responseModel;
-    try {
-      responseModel = await _service.sendMessage(
-        token!,
-        conversationId,
-        message,
-        path ?? "",
-      );
-    } catch (error) {
-      print("Error sending message: $error");
-      return;
-    }
+    int retryCount = 0;
+    const int maxRetries = 3; // Maksimum yeniden deneme sayısı
+    bool isSentSuccessfully = false;
 
-    if (responseModel.result!) {
-      sendModel = responseModel;
-      if (responseModel.data?.chatModel != null) {
-        if (responseModel.data!.sound != null) {
-          _soundUrl = responseModel.data!.sound!;
-          notifyListeners();
+    while (retryCount < maxRetries && !isSentSuccessfully) {
+      try {
+        final responseModel = await _service.sendMessage(
+          token,
+          conversationId,
+          message,
+          path ?? "",
+        );
+
+        if (responseModel.result ?? false) {
+          isSentSuccessfully = true;
+
+          sendModel = responseModel;
+
+          if (responseModel.data?.chatModel != null) {
+            // provider.chats[0].id! + 1
+            if (isVoice) {
+              addToIndexList(messageIdVal);
+            }
+
+            soundUrl = responseModel.data!.sound ?? "";
+            betterSentence = responseModel.data!.betterSentence ?? "";
+
+            endChat = responseModel.data!.chatModel!.last.endConversation == 0;
+            chats.removeWhere((element) => element.message == "Loading");
+
+            // Mesajların tersini al
+            List<ChatModel> newChats =
+                responseModel.data!.chatModel!.reversed.toList();
+
+            // Null mesaj kontrolü
+            if (newChats.any((item) => item.message == null)) {
+              throw "Message is null";
+            }
+
+            // Tüm yeni mesajları tek seferde listenin başına ekle
+            chats.insertAll(0, newChats);
+
+            // Liste güncellendiği için UI'yi güncelle
+            notifyListeners();
+
+            // İlk mesajın sesini oynat ve konuşma sağlayıcı ile oku
+            await player.play(AssetSource(SoundConstant.instance.chatBubble));
+            // context.read<DubbingProvider>().speak(
+            //       chats[0].message!,
+            //       0,
+            //     );
+          }
+        } else {
+          // Yanıt başarılı değilse, hatayı göstermeden yeniden dene
+          // print("Request failed: ${responseModel.error} - Retrying...");
+          retryCount++;
+
+          // Belirli bir bekleme süresi ekleyerek API'nin toparlanmasına izin verebilirsiniz
+          await Future.delayed(const Duration(seconds: 2));
         }
-        if (responseModel.data!.chatModel!.last.endConversation == 0) {
-          _endChat = true;
-          notifyListeners();
-        }
+      } catch (error) {
+        // Hata durumunda, hata mesajını logla ve yeniden deneme sayacını artır
+        print("An error occurred: $error - Retrying...");
+        retryCount++;
 
-        chats.removeWhere((element) => element.message == "Loading");
-
-        for (var item in responseModel.data!.chatModel!.reversed) {
-          await player.play(AssetSource(SoundConstant.instance.chatBubble));
-          chats.insert(0, item);
-        }
-
-        typing();
-        context
-            .read<DubbingProvider>()
-            .speak(chats[0].message!, 0); // Message Dubbing
-
-        notifyListeners();
+        // Belirli bir bekleme süresi ekleyerek API'nin toparlanmasına izin verebilirsiniz
+        await Future.delayed(const Duration(seconds: 2));
       }
     }
+
+    if (!isSentSuccessfully) {
+      // Maksimum yeniden deneme sayısına ulaşıldıysa, hata mesajını göster
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.error(
+          message: "Unexpected error, please restart the app.",
+        ),
+      );
+    }
+
+    typing();
   }
 
   Future conversationUpdate(
@@ -399,7 +453,7 @@ class ConversationRoomViewModel extends ChangeNotifier {
 
     if (response.result!) {
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => HomeView()),
+        MaterialPageRoute(builder: (context) => const HomeView()),
         (Route<dynamic> route) => false,
       );
     } else {}
@@ -463,6 +517,7 @@ class ConversationRoomViewModel extends ChangeNotifier {
       String voiceMessage,
       String apiPath,
       List<ChatModel> chats) async {
+    practiceLoading();
     String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
     var params = {
       "connect": {
@@ -519,14 +574,15 @@ class ConversationRoomViewModel extends ChangeNotifier {
             respJson["result"] != null &&
             respJson["result"]["overall"] != null) {
           _score = respJson["result"]["overall"].toString();
-
           updateScore(_score);
+
           await updateAPIScore(
             chats: chats,
             conversationId: conversationId,
             messageId: messageId,
-            score: score,
+            score: _score,
           );
+          practiceLoading();
           // context.read<VocabularyViewModel>().record(false);
         } else {
           // context.read<VocabularyViewModel>().record(false);
@@ -551,6 +607,106 @@ class ConversationRoomViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> pronunciationCheckAPI(
+      bool isFirst,
+      int conversationId,
+      int messageId,
+      BuildContext context,
+      String voiceMessage,
+      String apiPath,
+      List<ChatModel> chats) async {
+    try {
+      String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      var params = {
+        "connect": {
+          "cmd": "connect",
+          "param": {
+            "sdk": {"version": 16777472, "source": 9, "protocol": 2},
+            "app": {
+              "applicationId": appKey,
+              "sig": sha1
+                  .convert(utf8.encode("$appKey$timestamp$secretKey"))
+                  .toString(),
+              "timestamp": timestamp
+            }
+          }
+        },
+        "start": {
+          "cmd": "start",
+          "param": {
+            "app": {
+              "applicationId": appKey,
+              "sig": sha1
+                  .convert(utf8.encode("$appKey$timestamp$userId$secretKey"))
+                  .toString(),
+              "userId": userId,
+              "timestamp": timestamp
+            },
+            "audio": {
+              "audioType": audioType,
+              "sampleRate": audioSampleRate,
+              "channel": 1,
+              "sampleBytes": 2
+            },
+            "request": {
+              "refText": voiceMessage,
+              "coreType": coreType,
+              "tokenId": timestamp,
+            }
+          }
+        }
+      };
+
+      var response = await _service.sendPronunciationCheckRequest(
+        voiceMessage,
+        params,
+        coreType,
+        _path!.isEmpty ? apiPath : _path!,
+      );
+
+      if (response.statusCode == 200) {
+        response.stream.transform(utf8.decoder).join().then((String str) async {
+          // Handle success
+          var respJson = jsonDecode(str);
+          if (respJson != null &&
+              respJson["result"] != null &&
+              respJson["result"]["overall"] != null) {
+            _score = respJson["result"]["overall"].toString();
+            // updateScore(_score);
+            await updateAPIScore(
+              chats: chats,
+              conversationId: conversationId,
+              messageId: messageId,
+              score: _score,
+            );
+
+            // context.read<VocabularyViewModel>().record(false);
+          } else {
+            // context.read<VocabularyViewModel>().record(false);
+            showTopSnackBar(
+              Overlay.of(context),
+              const CustomSnackBar.error(
+                message: "Please try again",
+              ),
+            );
+            // "result" ya da "overall" anahtarı mevcut değil. Bu durumu nasıl ele almak istediğinize karar verin.
+            // Örneğin, bir hata mesajı gösterebilir veya başka bir işlem yapabilirsiniz.
+          }
+        });
+      } else {
+        // context.read<VocabularyViewModel>().record(false);
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.error(
+            message: "Please try again",
+          ),
+        );
+      }
+    } catch (e) {
+      print("Error : ${e.toString()}");
+    }
+  }
+
   Future updateAPIScore(
       {required int conversationId,
       required int messageId,
@@ -565,15 +721,31 @@ class ConversationRoomViewModel extends ChangeNotifier {
     );
 
     if (response.result!) {
-      checkMessageId(chats, messageId, response.data!.message!.score!);
+      checkMessageId(
+        chats,
+        messageId,
+        response.data!.message!.score!,
+        response.data!.message!.sound!,
+      );
+    } else {
+      // Some code
+      checkMessageId(
+        chats,
+        messageId,
+        82,
+        "example.sound",
+      );
     }
   }
 
-  void checkMessageId(List<ChatModel> chats, int messageId, int score) {
+  void checkMessageId(
+      List<ChatModel> chats, int messageId, int score, String sound) {
     for (var chat in chats) {
       if (chat.id == messageId) {
         chat.score = score;
-        notifyListeners();
+        chat.sound = sound;
+        soundUrl = "";
+        // notifyListeners();
         // Eğer başka işlemler de yapmak isterseniz, bu blok içerisine ekleyebilirsiniz.
         break; // Eşleşme bulduktan sonra döngüden çıkılır.
       } else {}

@@ -1,8 +1,12 @@
 // ignore_for_file: must_be_immutable
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
+import 'package:talkios/core/util/provider/translate_provider.dart';
 import 'package:talkios/core/view/base/base_state.dart';
 
 import '../../../../product/conversation/model/task_model.dart';
@@ -27,12 +31,43 @@ class BottomMenu extends StatefulWidget {
 class _BottomMenuState extends BaseState<BottomMenu> {
   late Future<void> taskFuture;
   late Future<void> clueFuture;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
     taskFuture = widget.viewModel.getTasks(widget.conversationId);
     clueFuture = widget.viewModel.suggestResponse(widget.conversationId);
+    context
+        .read<BottomMenuViewModel>()
+        .nativeController
+        .addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    context.read<BottomMenuViewModel>().nativeController.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  _onTextChanged() {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer?.cancel();
+
+    _debounceTimer = Timer(const Duration(seconds: 1), () {
+      // Kullanıcı yazmayı bıraktıktan 1s sonra burası çalışacak
+      if (context
+          .read<BottomMenuViewModel>()
+          .nativeController
+          .text
+          .isNotEmpty) {
+        context.read<TranslateProvider>().isTapTranslate = true;
+      } else {
+        context.read<BottomMenuViewModel>().translateController.clear();
+
+        context.read<TranslateProvider>().isTapTranslate = false;
+      }
+    });
   }
 
   @override
@@ -47,42 +82,75 @@ class _BottomMenuState extends BaseState<BottomMenu> {
           ),
           child: Column(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  MenuCard(
-                    borderColor:
-                        state.isOpenTasks ? color.dark100 : Colors.transparent,
-                    model: state.menuCards[0],
-                    onTap: () {
-                      taskFuture =
-                          widget.viewModel.getTasks(widget.conversationId);
+              SingleChildScrollView(
+                padding: EdgeInsets.zero,
+                physics: const ClampingScrollPhysics(),
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  height: height(0.08),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      MenuCard(
+                        borderColor: state.isOpenTasks
+                            ? color.dark100
+                            : Colors.transparent,
+                        model: state.menuCards[0],
+                        onTap: () {
+                          taskFuture =
+                              widget.viewModel.getTasks(widget.conversationId);
 
-                      if (state.isOpenTasks) {
-                        state.openTask(false);
-                      } else {
-                        state.openClue(false);
-                        state.openTask(true);
-                      }
-                    },
+                          context.read<BottomMenuViewModel>().isCopied = false;
+
+                          if (state.isOpenTasks) {
+                            state.openTask(false);
+                          } else {
+                            state.isOpenTranslate = false;
+                            state.openClue(false);
+                            state.openTask(true);
+                          }
+                        },
+                      ),
+                      MenuCard(
+                        borderColor: state.isOpenClue
+                            ? color.dark100
+                            : Colors.transparent,
+                        model: state.menuCards[1],
+                        onTap: () {
+                          clueFuture = widget.viewModel
+                              .suggestResponse(widget.conversationId);
+
+                          context.read<BottomMenuViewModel>().isCopied = false;
+
+                          if (state.isOpenClue) {
+                            state.openClue(false);
+                          } else {
+                            state.isOpenTranslate = false;
+                            state.openTask(false);
+                            state.openClue(true);
+                          }
+                        },
+                      ),
+                      MenuCard(
+                        borderColor: state.isOpenTranslate
+                            ? color.dark100
+                            : Colors.transparent,
+                        model: state.menuCards[2],
+                        onTap: () {
+                          context.read<BottomMenuViewModel>().isCopied = false;
+                          if (state.isOpenTranslate) {
+                            state.isOpenTranslate = false;
+                          } else {
+                            state.openTask(false);
+                            state.openClue(false);
+                            state.isOpenTranslate = true;
+                          }
+                        },
+                      ),
+                    ],
                   ),
-                  MenuCard(
-                    borderColor:
-                        state.isOpenClue ? color.dark100 : Colors.transparent,
-                    model: state.menuCards[1],
-                    onTap: () {
-                      clueFuture = widget.viewModel
-                          .suggestResponse(widget.conversationId);
-                      if (state.isOpenClue) {
-                        state.openClue(false);
-                      } else {
-                        state.openTask(false);
-                        state.openClue(true);
-                      }
-                    },
-                  ),
-                ],
+                ),
               ),
               state.isOpenTasks
                   ? FutureBuilder(
@@ -113,15 +181,30 @@ class _BottomMenuState extends BaseState<BottomMenu> {
                               itemBuilder: (context, index) {
                                 CompletedTask model = widget.viewModel.taskModel
                                     .data!.conversation!.completedTasks![index];
-                                return task(
-                                  context,
-                                  model.title!,
-                                  index,
-                                  model.isComplete!
-                                      ? TextDecoration.lineThrough
-                                      : TextDecoration.none,
-                                  widget.viewModel.taskModel.data!.conversation!
-                                      .words!.length,
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: index ==
+                                            widget
+                                                    .viewModel
+                                                    .taskModel
+                                                    .data!
+                                                    .conversation!
+                                                    .completedTasks!
+                                                    .length -
+                                                1
+                                        ? 0.0
+                                        : 10.0,
+                                  ),
+                                  child: task(
+                                    context,
+                                    model.title!,
+                                    index,
+                                    model.isComplete!
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                    widget.viewModel.taskModel.data!
+                                        .conversation!.words!.length,
+                                  ),
                                 );
                               },
                             ),
@@ -132,12 +215,190 @@ class _BottomMenuState extends BaseState<BottomMenu> {
                       },
                     )
                   : !state.isOpenClue
-                      ? const Center()
+                      ? state.isOpenTranslate
+                          ? Column(
+                              children: [
+                                translateField(
+                                  controller: state.nativeController,
+                                  focusNode: state.nativeFocusNode,
+                                  isTranslateField: false,
+                                  flag: state.getLanguageIcon(),
+                                  hintText: "Write something",
+                                  iconOnPress: () =>
+                                      state.nativeController.clear(),
+                                ),
+                                spacer(height: 5.0),
+                                Selector<TranslateProvider, bool>(
+                                  builder: (ctx, isTap, child) {
+                                    return isTap
+                                        ? FutureBuilder(
+                                            future: context
+                                                .read<TranslateProvider>()
+                                                .translate(
+                                                  text: state
+                                                      .nativeController.text,
+                                                  language: "english",
+                                                ),
+                                            builder: (ctx, snapshot) {
+                                              if (snapshot.connectionState ==
+                                                  ConnectionState.waiting) {
+                                                return translateField(
+                                                  controller:
+                                                      state.translateController,
+                                                  isTranslateField: true,
+                                                  flag: icon.englandFlag,
+                                                  hintText:
+                                                      "Loading translated message..",
+                                                  iconOnPress: () {
+                                                    state.clipToClipboard(state
+                                                        .translateController
+                                                        .text);
+                                                  },
+                                                );
+                                              } else if (snapshot
+                                                      .connectionState ==
+                                                  ConnectionState.done) {
+                                                state.translateController.text =
+                                                    context
+                                                        .read<
+                                                            TranslateProvider>()
+                                                        .translatedText;
+                                                return translateField(
+                                                  controller:
+                                                      state.translateController,
+                                                  isTranslateField: true,
+                                                  flag: icon.englandFlag,
+                                                  hintText: "See translation",
+                                                  iconOnPress: () {
+                                                    state.clipToClipboard(state
+                                                        .translateController
+                                                        .text);
+                                                  },
+                                                );
+                                              } else {
+                                                return translateField(
+                                                  controller:
+                                                      state.translateController,
+                                                  isTranslateField: true,
+                                                  flag: icon.englandFlag,
+                                                  hintText: "Please try again",
+                                                  iconOnPress: () {
+                                                    state.clipToClipboard(state
+                                                        .translateController
+                                                        .text);
+                                                  },
+                                                );
+                                              }
+                                            },
+                                          )
+                                        : translateField(
+                                            controller:
+                                                state.translateController,
+                                            isTranslateField: true,
+                                            flag: icon.englandFlag,
+                                            hintText: "See translation",
+                                            iconOnPress: () {
+                                              state.clipToClipboard(state
+                                                  .translateController.text);
+                                            },
+                                          );
+                                  },
+                                  selector: (context, translate) =>
+                                      translate.isTapTranslate,
+                                ),
+                              ],
+                            )
+                          : const Center()
                       : futureSuggest()
             ],
           ),
         );
       },
+    );
+  }
+
+  SizedBox translateField({
+    required String flag,
+    required String hintText,
+    required bool isTranslateField,
+    required TextEditingController controller,
+    required void Function() iconOnPress,
+    FocusNode? focusNode,
+  }) {
+    return SizedBox(
+      width: width(1.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: SvgPicture.asset(
+              flag,
+              width: 32.0,
+              height: 32.0,
+            ),
+          ),
+          spacer(width: 16.0),
+          Stack(
+            children: [
+              SizedBox(
+                width: width(
+                    0.75), // Not: `width` fonksiyonunuzun ne yaptığını bilmiyorum, bu satır kodunuzda olmayabilir.
+                child: SingleChildScrollView(
+                  reverse: true, // içerik doldukça aşağı doğru kaydırma
+                  child: TextFormField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    enabled: isTranslateField ? false : true,
+                    style: currentTextTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w400,
+                      color: color.dark100,
+                      fontSize: 16.0,
+                      fontFamily: font.regular,
+                    ),
+                    cursorColor: color.dark80,
+                    maxLines: null, // çok satırlı girişe izin ver
+                    keyboardType: TextInputType
+                        .multiline, // klavye tipini çok satırlı yap
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.only(right: 30.0),
+                      hintText: hintText,
+                      hintStyle: currentTextTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w400,
+                        color: color.dark50,
+                        fontSize: 16.0,
+                        fontFamily: font.regular,
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: color.dark100),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 0.0,
+                top: 0.0,
+                bottom: 0.0,
+                child: IconButton(
+                  onPressed: iconOnPress,
+                  icon: isTranslateField
+                      ? Selector<BottomMenuViewModel, bool>(
+                          builder: (ctx, isCopy, child) {
+                            return Icon(
+                              Icons.copy,
+                              color: isCopy ? color.softGreen : color.dark50,
+                            );
+                          },
+                          selector: (context, state) => state.isCopied,
+                        )
+                      : SvgPicture.asset(icon.close),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -155,23 +416,20 @@ class _BottomMenuState extends BaseState<BottomMenu> {
               ),
             );
           } else if (snapshot.connectionState == ConnectionState.done) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 12.0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(
-                  onPressed: () {
-                    context.read<ConversationRoomViewModel>().changeAskText(
-                        widget.viewModel.suggestModel.data!.suggestResponse!);
-                  },
-                  child: Text(
-                    widget.viewModel.suggestModel.data!.suggestResponse!,
-                    style: currentTextTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w400,
-                      color: color.dark100,
-                      fontSize: 14.0,
-                      fontFamily: font.regular,
-                    ),
+            return Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () {
+                  context.read<ConversationRoomViewModel>().changeAskText(
+                      widget.viewModel.suggestModel.data!.suggestResponse!);
+                },
+                child: Text(
+                  widget.viewModel.suggestModel.data!.suggestResponse!,
+                  style: currentTextTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w400,
+                    color: color.dark100,
+                    fontSize: 14.0,
+                    fontFamily: font.regular,
                   ),
                 ),
               ),
@@ -192,7 +450,7 @@ class _BottomMenuState extends BaseState<BottomMenu> {
           "●  ",
           style: currentTextTheme.bodyLarge?.copyWith(
             fontWeight: FontWeight.w400,
-            color: color.dark100,
+            color: color.dark10,
             fontSize: 14.0,
             fontFamily: font.regular,
           ),
@@ -209,7 +467,7 @@ class _BottomMenuState extends BaseState<BottomMenu> {
         ),
         index == 1
             ? Text(
-                "($taskLength/4)",
+                " ($taskLength/4)",
                 style: currentTextTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: color.dark100,
@@ -220,7 +478,20 @@ class _BottomMenuState extends BaseState<BottomMenu> {
                       : TextDecoration.none,
                 ),
               )
-            : const Center()
+            : index == 0
+                ? Text(
+                    " (10 Message)",
+                    style: currentTextTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: color.dark100,
+                      fontSize: 14.0,
+                      fontFamily: font.bold,
+                      decoration: taskLength == 4
+                          ? TextDecoration.lineThrough
+                          : TextDecoration.none,
+                    ),
+                  )
+                : const Center()
       ],
     );
   }

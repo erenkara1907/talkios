@@ -18,44 +18,48 @@ class SoundButton extends BaseStateless {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 91.0,
-      height: 51.0,
+      height: 31.0,
+      width: 51.0,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: color.dark20,
+          backgroundColor: const Color.fromRGBO(153, 187, 246, 0.4),
           shadowColor: Colors.transparent,
           padding: EdgeInsets.zero,
           elevation: 5,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30.0),
-            side: BorderSide(
-              color: borderColor,
-              width: 1.0,
-            ),
           ),
         ),
         onPressed: onPressed,
-        child: Padding(
-          padding: const EdgeInsets.all(5.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 40.0,
-                height: 40.0,
-                child: CircleAvatar(
-                  radius: 20.0,
-                  backgroundImage: CachedNetworkImageProvider(profilePhoto),
-                ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: SizedBox(
+                width: 28.0,
+                height: 30.0,
+                child: profilePhoto == icon.appIcon
+                    ? CircleAvatar(
+                        radius: 20.0,
+                        backgroundImage: AssetImage(icon.appIcon),
+                      )
+                    : CircleAvatar(
+                        radius: 20.0,
+                        backgroundImage:
+                            CachedNetworkImageProvider(profilePhoto),
+                      ),
               ),
-              SvgPicture.asset(
+            ),
+            Expanded(
+              child: SvgPicture.asset(
                 icon.speak,
-                width: 40.0,
-                height: 40.0,
+                width: 25.0,
+                height: 25.0,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

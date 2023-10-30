@@ -1,7 +1,6 @@
 // ignore_for_file: no_leading_underscores_for_local_identifiers, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:talkios/core/cache/cache_manager.dart';
 import 'package:talkios/core/constant/color_constant.dart';
 import 'package:talkios/core/constant/icon_constant.dart';
@@ -18,18 +17,16 @@ import 'package:talkios/product/auth/register/model/language_model.dart';
 import 'package:talkios/product/auth/register/model/target_model.dart';
 import 'package:talkios/product/auth/register/model/time_model.dart';
 import 'package:talkios/product/auth/register/register_service.dart';
-import 'package:talkios/product/auth/register/view/pagination_view.dart';
+import 'package:talkios/product/auth/verify/verify_token_view.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
 import '../../../core/constant/config_constant.dart';
-import '../../home/home_service.dart';
 import 'model/interest_model.dart';
 
 class RegisterViewModel extends ChangeNotifier {
   // Service
   RegisterService service = RegisterService();
-  final HomeService _service = HomeService();
   // Pagination
   int _currentPage = 0;
   int get currentPage => _currentPage;
@@ -101,6 +98,9 @@ class RegisterViewModel extends ChangeNotifier {
 
   final List<int> _selectedInterestItems = [];
   List<int> get selectedInterestItems => _selectedInterestItems;
+
+  bool _isCheckedTerms = false;
+  bool get isCheckedTerms => _isCheckedTerms;
 
   List<LanguageModel> languages = [
     LanguageModel(
@@ -207,20 +207,25 @@ class RegisterViewModel extends ChangeNotifier {
   TextEditingController nameController = TextEditingController();
 
   // Key
-  GlobalKey loginKey = GlobalKey();
+  GlobalKey<FormState> registerKey = GlobalKey();
 
   // FocusNode
   FocusNode emailFocusNode = FocusNode();
   FocusNode passwordFocusNode = FocusNode();
-  FocusNode nameFocusNode = FocusNode();
+  FocusNode nameFocusNode = FocusNode(); 
 
   // Function
-  Future register(BuildContext context, Map<String, dynamic> userInfo) async {
-    final response = await service.register(userInfo);
-    final playerId = OneSignal.User.pushSubscription.id;
+  set isCheckedTerms(bool value) {
+    _isCheckedTerms = value;
+    notifyListeners();
+  }
 
-    if (response.result!) {
-      await _service.sendPlayerIdToBackend(playerId!, response.data!.token!);
+  Future register(
+      BuildContext context, Map<String, dynamic> userInfo, String mail) async {
+    isTap = true;
+    final response = await service.register(userInfo);
+
+    if (response.result != null && response.result!) {
       await CacheManager()
           .setBool(PreferencesKeys.IS_FIRST_CONVERSATION.toString(), true);
       await CacheManager()
@@ -229,16 +234,29 @@ class RegisterViewModel extends ChangeNotifier {
       String _token = response.data!.token!;
       CacheManager().setString(PreferencesKeys.TOKEN.toString(), _token);
       analyticInstance.logEvent(name: 'signed_up');
+
+      showTopSnackBar(
+        Overlay.of(context),
+        const CustomSnackBar.success(
+          message: "Verification email sent",
+        ),
+      );
+
+      isTap = false;
+
       Future.delayed(
         const Duration(milliseconds: 300),
         () {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const PaginationView()),
-            (Route<dynamic> route) => false,
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) =>
+                  VerifyTokenView(isRedirect: "Register", mail: mail),
+            ),
           );
         },
       );
     } else {
+      isTap = false;
       String _message = response.validationError!.email![0];
       showTopSnackBar(
         Overlay.of(context),
@@ -251,10 +269,12 @@ class RegisterViewModel extends ChangeNotifier {
 
   Future updateProfileInfo(
       Map<String, dynamic> userInfo, PageController _pageController) async {
+    isTap = true;
     String? _token = CacheManager().getString(PreferencesKeys.TOKEN.toString());
     final response = await service.updateProfileInfo(_token!, userInfo);
 
     if (response.result!) {
+      isTap = false;
       Future.delayed(
         const Duration(milliseconds: 650),
         () {
@@ -262,8 +282,27 @@ class RegisterViewModel extends ChangeNotifier {
         },
       );
     } else {
+      isTap = false;
+
       // Not okay
     }
+  }
+
+  String? validateName(String? value) {
+    if (value == null || value.isEmpty || value.contains(' ')) {
+      return 'Please enter a name without spaces';
+    }
+    return null;
+  }
+
+  String? validatePassword(String? value) {
+    if (value == null ||
+        value.length < 8 ||
+        !RegExp(r'\d').hasMatch(value) ||
+        !RegExp(r'[a-zA-Z]').hasMatch(value)) {
+      return 'Password must be at least 8 characters, include a number and a letter';
+    }
+    return null;
   }
 
   void addItem(int item) {
@@ -284,10 +323,15 @@ class RegisterViewModel extends ChangeNotifier {
     return _selectedInterestItems.isEmpty ? false : true;
   }
 
-  void tapButton() {
-    _isTap = !_isTap;
+  set isTap(bool value) {
+    _isTap = value;
     notifyListeners();
   }
+
+  // void tapButton() {
+  //   _isTap = !_isTap;
+  //   notifyListeners();
+  // }
 
   void changeLanguageCode(String code) {
     _languageCode = code;

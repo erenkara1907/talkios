@@ -11,8 +11,16 @@ class SpeechProvider with ChangeNotifier {
   bool _isRecord = false;
   bool get isRecord => _isRecord;
 
+  bool _isVoiceRecording = false;
+  bool get isVoiceRecording => _isVoiceRecording;
+
   void record(bool value) {
     _isRecord = value;
+  }
+
+  set isVoiceRecording(bool value) {
+    _isVoiceRecording = value;
+    notifyListeners();
   }
 
   Future<void> getPermissionAndStartListening(BuildContext context) async {

@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
@@ -5,6 +7,7 @@ import 'package:talkios/product/auth/register/model/time_model.dart';
 import 'package:talkios/product/auth/register/register_view_model.dart';
 
 import '../../view/widget/button/register_process_button.dart';
+import '../provider/onesignal_service.dart';
 
 class TimeView extends BaseStateless {
   final PageController pageController;
@@ -48,7 +51,9 @@ class TimeView extends BaseStateless {
                         text: time[index].text,
                         isLanguage: false,
                         isSelected: isSelected == index ? true : false,
-                        onPressed: () {
+                        onPressed: () async {
+                          await OneSignalService.setUpOneSignal(
+                              isUsageDuration: false);
                           Provider.of<RegisterViewModel>(context, listen: false)
                               .setIndexToTimeButton(index);
                           context

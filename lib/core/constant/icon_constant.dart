@@ -46,4 +46,18 @@ class IconConstant {
   String lockScenario = '$asset' 'lock_scenario.svg';
   String kite = '$asset' 'kite.svg';
   String speak = '$asset' 'speak.svg';
+  String tick = '$asset' 'tick.svg';
+  String tip = '$asset' 'tip.svg';
+  String translateDetail = '$asset' 'translate_detail.svg';
+  String taskDetail = '$asset' 'task_detail.svg';
+  String fluentPerson = '$asset' 'fluent_person.svg';
+  String soundVocabulary = '$asset' 'sound_vocabulary.svg';
+  String lockHome = '$asset' 'lock_home.svg';
+  String completed = '$asset' 'completed.svg';
+  String openScenario = '$asset' 'open_scenario.svg';
+  String voice = '$asset' 'voice.svg';
+
+  // Png
+  String premium = '$asset' 'premium.png';
+  String appIcon = 'assets/icons/app_icon.png';
 }

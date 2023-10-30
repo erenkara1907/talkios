@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:talkios/core/view/base/base_state.dart';
 import 'package:talkios/core/view/widget/button/app_button.dart';
+import 'package:talkios/core/view/widget/button/voice_button.dart';
 import 'package:talkios/core/view/widget/card/chat_card.dart';
 import 'package:talkios/core/view/widget/menu/bottom_menu.dart';
 import 'package:talkios/core/view/widget/menu/header_menu.dart';
@@ -20,24 +21,29 @@ import 'package:top_snackbar_flutter/top_snack_bar.dart';
 import '../../../core/constant/config_constant.dart';
 import '../../../core/util/connectivity_service.dart';
 import '../../../core/util/provider/sound/dubbing_provider.dart';
+import '../../../core/util/provider/sound/speech_provider.dart';
 import '../../../core/view/widget/menu/input_menu.dart';
 
 class ConversationRoomView extends StatefulWidget {
   final int conversationId;
   final String userProfilePhoto;
+  final int isActive;
   final String aiProfilePhoto;
   final String scenarioName;
   final int score;
   final String fromWhere;
+  final String gender;
 
   const ConversationRoomView({
     Key? key,
     required this.conversationId,
     required this.userProfilePhoto,
+    required this.isActive,
     required this.aiProfilePhoto,
     required this.scenarioName,
     required this.score,
     required this.fromWhere,
+    required this.gender,
   }) : super(key: key);
 
   @override
@@ -51,10 +57,13 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
   final ScrollController scrollController = ScrollController();
   DubbingProvider dubbingProvider = DubbingProvider();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  AudioPlayer player = AudioPlayer();
 
   @override
   void initState() {
     super.initState();
+    context.read<SpeechProvider>().initialize();
+
     messagesFuture = context
         .read<ConversationRoomViewModel>()
         .getAllMessages(widget.conversationId);
@@ -73,43 +82,13 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
 
   GestureDetector conversationRoomView() {
     return GestureDetector(
-      onTap: () => viewModel.deFocus(),
+      onTap: () {
+        viewModel.deFocus();
+        context.read<BottomMenuViewModel>().deFocus();
+      },
       child: Scaffold(
         key: _scaffoldKey,
-        body: Selector<ConversationRoomViewModel, bool>(
-          builder: (context, firstConversation, child) {
-            return Stack(
-              children: [
-                noFirstConversation(),
-                Selector<ConversationRoomViewModel, bool>(
-                  builder: (context, isFirst, child) {
-                    return isFirst
-                        ? Positioned.fill(
-                            child: AnimatedOpacity(
-                              opacity: isFirst ? 1.0 : 0.0,
-                              duration: const Duration(milliseconds: 300),
-                              child: InkWell(
-                                onTap: isFirst
-                                    ? () => context
-                                        .read<ConversationRoomViewModel>()
-                                        .changeStatusFirstConversation(false)
-                                    : () {},
-                                child: Image.asset(
-                                  image.firstChat,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                          )
-                        : const Center();
-                  },
-                  selector: (context, state) => state.isFirstConversation,
-                ),
-              ],
-            );
-          },
-          selector: (context, state) => state.isFirstConversation,
-        ),
+        body: noFirstConversation(),
       ),
     );
   }
@@ -223,7 +202,7 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
       children: [
         spacer(height: 56.0),
         Consumer<ConversationRoomViewModel>(
-          builder: (context, provider, child) {
+          builder: (contextsa, provider, child) {
             return Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -284,7 +263,8 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
                                               "1.00" &&
                                           index == 0)
                                   ? SingleChildScrollView(
-                                      child: !provider.isContinue
+                                      child: !provider.isContinue &&
+                                              widget.isActive == 1
                                           ? Column(
                                               mainAxisAlignment:
                                                   MainAxisAlignment.start,
@@ -292,6 +272,7 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 ChatCard(
+                                                  gender: widget.gender,
                                                   chats: provider.chats,
                                                   messageId: model.id!,
                                                   scaffoldKey: _scaffoldKey,
@@ -314,6 +295,7 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
                                               ],
                                             )
                                           : ChatCard(
+                                              gender: widget.gender,
                                               chats: provider.chats,
                                               messageId: model.id!,
                                               scaffoldKey: _scaffoldKey,
@@ -331,6 +313,7 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
                                             ),
                                     )
                                   : ChatCard(
+                                      gender: widget.gender,
                                       chats: provider.chats,
                                       messageId: model.id!,
                                       scaffoldKey: _scaffoldKey,
@@ -348,62 +331,65 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
                     ),
                   ),
                   Selector<ConversationRoomViewModel, bool>(
-                    builder: (context, isContinue, child) {
-                      return AbsorbPointer(
-                        absorbing: isContinue ? false : !provider.isActiveChat,
-                        child: InputMenu(
-                          viewModel: viewModel,
-                          dubbingProvider: dubbingProvider,
-                          hintText: isContinue
-                              ? "Ask anything"
-                              : provider.isActiveChat
-                                  ? "Ask anything"
-                                  : "You have completed this scenario",
-                          conversationId: widget.conversationId,
-                          controller: provider.askController,
-                          focusNode: viewModel.askFocusNode,
-                          sendMessage: () async {
-                            if (provider.isTyping) {
-                              showTopSnackBar(
-                                Overlay.of(context),
-                                const CustomSnackBar.error(
-                                  message:
-                                      "You cannot send multiple message at the same time",
-                                ),
-                              );
-                            } else if (provider.askController.text.isNotEmpty) {
-                              dubbingProvider.stop(); // Stop Dubbing
-                              context.read<DubbingProvider>().stop();
-                              AudioPlayer player = AudioPlayer();
-                              await player.play(AssetSource(sound.chatBubble));
-                              String message = provider.askController.text;
-                              provider.addToChatList(
-                                  provider.askController.text,
-                                  (provider.chats[0].id! + 1).toString());
+                    builder: (ctx, isKeyboard, child) {
+                      return isKeyboard
+                          ? InputMenu(
+                              gender: widget.gender,
+                              viewModel: viewModel,
+                              dubbingProvider: dubbingProvider,
+                              hintText: "Ask anything",
+                              conversationId: widget.conversationId,
+                              controller: provider.askController,
+                              focusNode: viewModel.askFocusNode,
+                              sendMessage: () async {
+                                if (provider.isTyping) {
+                                  showTopSnackBar(
+                                    Overlay.of(context),
+                                    const CustomSnackBar.error(
+                                      message:
+                                          "You cannot send multiple message at the same time",
+                                    ),
+                                  );
+                                } else if (provider
+                                    .askController.text.isNotEmpty) {
+                                  dubbingProvider.stop(); // Stop Dubbing
+                                  context.read<DubbingProvider>().stop();
+                                  AudioPlayer player = AudioPlayer();
+                                  await player
+                                      .play(AssetSource(sound.chatBubble));
+                                  String message = provider.askController.text;
+                                  provider.addToChatList(
+                                      provider.askController.text,
+                                      (provider.chats[0].id! + 1).toString());
 
-                              HapticFeedback.heavyImpact();
-                              viewModel.askFocusNode.unfocus();
+                                  HapticFeedback.heavyImpact();
+                                  viewModel.askFocusNode.unfocus();
 
-                              provider.changeEmptyTextStatus(true);
-                              analyticInstance.logEvent(
-                                  name: 'start_messaging_text');
-                              context
-                                  .read<BottomMenuViewModel>()
-                                  .openClue(false);
-                              context
-                                  .read<BottomMenuViewModel>()
-                                  .openTask(false);
-                              await provider.sendMessage(
-                                context,
-                                message: message,
-                                conversationId: widget.conversationId,
-                              );
-                            }
-                          },
-                        ),
-                      );
+                                  provider.changeEmptyTextStatus(true);
+                                  analyticInstance.logEvent(
+                                      name: 'start_messaging_text');
+                                  context
+                                      .read<BottomMenuViewModel>()
+                                      .openClue(false);
+                                  context
+                                      .read<BottomMenuViewModel>()
+                                      .openTask(false);
+                                  context
+                                      .read<BottomMenuViewModel>()
+                                      .isOpenTranslate = false;
+                                  await provider.sendMessage(
+                                    isVoice: false,
+                                    context: context,
+                                    message: message,
+                                    conversationId: widget.conversationId,
+                                    gender: widget.gender,
+                                  );
+                                }
+                              },
+                            )
+                          : voiceSection(context);
                     },
-                    selector: (context, state) => state.isContinue,
+                    selector: (context, state) => state.isKeyboard,
                   ),
                 ],
               ),
@@ -415,6 +401,107 @@ class _ConversationRoomViewState extends BaseState<ConversationRoomView> {
           viewModel: viewModel,
         ),
         spacer(height: 50.0),
+      ],
+    );
+  }
+
+  Padding voiceSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 34.0,
+        vertical: 21.0,
+      ),
+      child: Selector<ConversationRoomViewModel, bool>(
+        builder: (ctx, isTap, child) {
+          return Stack(
+            children: [
+              tools(context),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 300),
+                top: 0.0,
+                left: isTap ? 30.0 : 0.0,
+                child: AnimatedOpacity(
+                  opacity: isTap ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: color.softBlue,
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        "Please click the button to start and finish",
+                        style: currentTextTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: color.background,
+                          fontSize: 14.0,
+                          fontFamily: font.regular,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+        selector: (context, state) => state.onTapVoiceButton,
+      ),
+    );
+  }
+
+  Row tools(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Container(
+          width: 40.0,
+          height: 40.0,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: color.dark60,
+            ),
+          ),
+          child: Center(
+            child: IconButton(
+              onPressed: () {
+                context.read<ConversationRoomViewModel>().isKeyboard = true;
+              },
+              icon: const Icon(Icons.keyboard),
+            ),
+          ),
+        ),
+        Expanded(
+          child: VoiceButton(
+            dubbingProvider: dubbingProvider,
+            viewModel: viewModel,
+            player: player,
+            conversationId: widget.conversationId,
+            gender: widget.gender,
+          ),
+        ),
+        Opacity(
+          opacity: 0.0,
+          child: Container(
+            width: 40.0,
+            height: 40.0,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: color.dark60,
+              ),
+            ),
+            child: Center(
+              child: IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.keyboard),
+              ),
+            ),
+          ),
+        )
       ],
     );
   }

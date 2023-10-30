@@ -41,6 +41,7 @@ class User {
   int? id;
   String? name;
   String? email;
+  dynamic emailVerified;
   NativeLanguage? nativeLanguage;
   List<LearnLanguages>? learnLanguages;
   String? profilePhoto;
@@ -64,12 +65,14 @@ class User {
     this.isConversations,
     this.interestTitles,
     this.userDetail,
+    this.emailVerified,
   });
 
   User.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     name = json['name'];
     email = json['email'];
+    emailVerified = json["email-verified_at"];
     nativeLanguage = json['native_language'] != null
         ? NativeLanguage.fromJson(json['native_language'])
         : null;

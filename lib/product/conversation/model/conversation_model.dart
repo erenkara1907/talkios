@@ -148,6 +148,7 @@ class ScenarioConversation {
   String? assistantRole;
   String? userRole;
   String? scenario;
+  String? gender;
   String? openingSentence;
   String? icon;
 
@@ -158,6 +159,7 @@ class ScenarioConversation {
       this.assistantRole,
       this.userRole,
       this.scenario,
+      this.gender,
       this.openingSentence,
       this.icon});
 
@@ -169,6 +171,7 @@ class ScenarioConversation {
     assistantRole = json['assistant_role'];
     userRole = json['user_role'];
     scenario = json['scenario'];
+    gender = json['gender'];
     openingSentence = json['opening_sentence'];
     icon = json['icon'];
   }

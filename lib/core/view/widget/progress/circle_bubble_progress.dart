@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
-import 'package:provider/provider.dart';
 import 'package:talkios/core/view/base/base_state.dart';
 import 'package:talkios/product/conversation/viewmodel/conversation_room_view_model.dart';
 

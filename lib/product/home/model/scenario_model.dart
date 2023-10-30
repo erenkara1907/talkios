@@ -45,44 +45,57 @@ class Data {
 class Scenarios {
   int? id;
   Category? category;
+  bool? isConversation;
+  dynamic conversationId;
+  int? conversationIsActive;
   String? title;
   String? subTitle;
   String? assistantRole;
   String? userRole;
   String? scenario;
+  String? gender;
   String? openingSentence;
   String? photo;
   String? icon;
   String? conversationCompletedScenario;
   int? isLocked;
   List<Levels>? levels;
-  List<Word>? words;
+  List<WordScenario>? scenarioWords;
 
-  Scenarios(
-      {this.id,
-      this.category,
-      this.title,
-      this.assistantRole,
-      this.userRole,
-      this.scenario,
-      this.openingSentence,
-      this.photo,
-      this.icon,
-      this.subTitle,
-      this.conversationCompletedScenario,
-      this.isLocked,
-      this.words,
-      this.levels});
+  Scenarios({
+    this.id,
+    this.category,
+    this.isConversation,
+    this.conversationId,
+    this.title,
+    this.assistantRole,
+    this.userRole,
+    this.scenario,
+    this.gender,
+    this.openingSentence,
+    this.photo,
+    this.icon,
+    this.subTitle,
+    this.conversationCompletedScenario,
+    this.isLocked,
+    this.scenarioWords,
+    this.levels,
+    this.conversationIsActive,
+  });
 
   Scenarios.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     category =
         json['category'] != null ? Category.fromJson(json['category']) : null;
+    isConversation = json['is_conversation'];
+    conversationId = json['conversation_id'];
+    conversationIsActive = json['conversation_is_active'];
     title = json['title'];
     subTitle = json['subtitle'];
     assistantRole = json['assistant_role'];
     userRole = json['user_role'];
     scenario = json['scenario'];
+    gender = json['gender'];
     openingSentence = json['opening_sentence'];
     photo = json['photo'];
     icon = json['icon'];
@@ -95,9 +108,9 @@ class Scenarios {
       });
     }
     if (json['words'] != null) {
-      words = <Word>[];
+      scenarioWords = <WordScenario>[];
       json['words'].forEach((v) {
-        words!.add(Word.fromJson(v));
+        scenarioWords!.add(WordScenario.fromJson(v));
       });
     }
   }
@@ -123,20 +136,23 @@ class Scenarios {
   }
 }
 
-class Word {
+class WordScenario {
   int? id;
   String? title;
   String? image;
-  Word({
+  bool? isComplete;
+  WordScenario({
     this.id,
     this.title,
     this.image,
+    this.isComplete,
   });
 
-  Word.fromJson(Map<String, dynamic> json) {
+  WordScenario.fromJson(Map<String, dynamic> json) {
     id = json["id"];
     title = json["title"];
     image = json["image"];
+    isComplete = json["is_completed"];
   }
 }
 

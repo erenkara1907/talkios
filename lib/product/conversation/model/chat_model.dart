@@ -1,12 +1,14 @@
 class SendMessageModel {
   bool? result;
   Data? data;
+  bool? isState;
 
-  SendMessageModel({this.result, this.data});
+  SendMessageModel({this.result, this.data, this.isState});
 
   SendMessageModel.fromJson(Map<String, dynamic> json) {
     result = json['result'];
     data = json['data'] != null ? Data.fromJson(json['data']) : null;
+    isState = false;
   }
 
   Map<String, dynamic> toJson() {
@@ -22,8 +24,13 @@ class SendMessageModel {
 class Data {
   List<ChatModel>? chatModel;
   String? sound;
+  String? betterSentence;
 
-  Data({this.chatModel, this.sound});
+  Data({
+    this.chatModel,
+    this.sound,
+    this.betterSentence,
+  });
 
   Data.fromJson(Map<String, dynamic> json) {
     if (json['message'] != null) {
@@ -33,6 +40,7 @@ class Data {
       });
     }
     sound = json['sound'];
+    betterSentence = json['better_sentence'];
   }
 
   Map<String, dynamic> toJson() {

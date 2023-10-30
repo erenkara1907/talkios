@@ -16,6 +16,9 @@ class ApiConstant {
   String verifyResetToken = "$baseUrl/auth/verify-reset-token";
   String resetPassword = "$baseUrl/auth/reset-password";
 
+  String verifyMail = "$baseUrl/auth/verify-email";
+  String resendVerifyMail = "$baseUrl/auth/email/verify/resend";
+
   // Profile
   String profilUrl = "$baseUrl/profile";
 
@@ -27,6 +30,9 @@ class ApiConstant {
 
   // Avatar
   String avatarUrl = '$baseUrl/avatars';
+
+  // Translate
+  String translateUrl = "$baseUrl/message/translate";
 
   // Rate
   String rateUrl = '$baseUrl/rates';

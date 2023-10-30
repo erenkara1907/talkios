@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
 import 'package:talkios/core/view/widget/button/app_button.dart';
 import 'package:talkios/core/view/widget/textfield/app_text_field.dart';
+import 'package:talkios/product/auth/forgot_password/view/forgot_password_view.dart';
 import 'package:talkios/product/auth/login/login_view_model.dart';
+import 'package:talkios/product/auth/register/view/register_view.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
@@ -71,7 +73,7 @@ class LoginView extends BaseStateless {
               ),
             ),
             spacer(height: 15.0),
-            form(),
+            form(context),
             const Expanded(flex: 9, child: SizedBox()),
             Selector<LoginViewModel, bool>(
               builder: (context, isTap, child) {
@@ -90,7 +92,7 @@ class LoginView extends BaseStateless {
                       if (viewModel.emailController.text.isNotEmpty &&
                           viewModel.passwordController.text.isNotEmpty) {
                         context.read<LoginViewModel>().tapButton();
-                        await viewModel.login(
+                        await context.read<LoginViewModel>().login(
                           context,
                           {
                             "email": viewModel.emailController.text,
@@ -112,6 +114,23 @@ class LoginView extends BaseStateless {
               },
               selector: (context, state) => state.isTapButton,
             ),
+            Align(
+              alignment: Alignment.topCenter,
+              child: TextButton(
+                onPressed: () {
+                  push(context, RegisterView());
+                },
+                child: Text(
+                  "Join Now and Explore!",
+                  style: currentTextTheme(context).bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: color.dark80,
+                        fontSize: 12.0,
+                        fontFamily: font.semiBold,
+                      ),
+                ),
+              ),
+            ),
             const Expanded(flex: 2, child: SizedBox()),
           ],
         ),
@@ -119,7 +138,7 @@ class LoginView extends BaseStateless {
     );
   }
 
-  Form form() {
+  Form form(BuildContext context) {
     return Form(
       key: viewModel.loginKey,
       child: Column(
@@ -157,6 +176,24 @@ class LoginView extends BaseStateless {
                 ],
               );
             },
+          ),
+          Align(
+            alignment: Alignment.topRight,
+            child: TextButton(
+              onPressed: () => push(
+                context,
+                ForgotPasswordView(),
+              ),
+              child: Text(
+                "Forgot Password?",
+                style: currentTextTheme(context).bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: color.dark80,
+                      fontSize: 12.0,
+                      fontFamily: font.semiBold,
+                    ),
+              ),
+            ),
           ),
         ],
       ),

@@ -1,22 +1,20 @@
 // ignore_for_file: no_leading_underscores_for_local_identifiers, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:talkios/core/cache/cache_manager.dart';
 import 'package:talkios/core/enum/preference_keys.dart';
+import 'package:talkios/core/util/provider/onesignal_service.dart';
 import 'package:talkios/product/auth/login/login_service.dart';
-import 'package:talkios/product/home/view/home_view.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
-import '../../home/home_service.dart';
+import '../../home/view/new_home_view.dart';
 
 class LoginViewModel extends ChangeNotifier {
   // Service
   LoginService service = LoginService();
-  final HomeService _service = HomeService();
 
-  // Coontroller
+  // Controller
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
@@ -37,15 +35,15 @@ class LoginViewModel extends ChangeNotifier {
   // Function
   Future login(BuildContext context, Map<String, dynamic> userInfo) async {
     final response = await service.login(userInfo);
-    final playerId = OneSignal.User.pushSubscription.id;
 
     if (response.result != null) {
       if (response.result!) {
-        await _service.sendPlayerIdToBackend(playerId!, response.data!.token!);
         String _token = response.data!.token!;
-        CacheManager().setString(PreferencesKeys.TOKEN.toString(), _token);
+        await CacheManager()
+            .setString(PreferencesKeys.TOKEN.toString(), _token);
+        await OneSignalService.setUpOneSignal(isUsageDuration: false);
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => HomeView()),
+          MaterialPageRoute(builder: (context) => const HomeView()),
           (Route<dynamic> route) => false,
         );
       } else {
@@ -64,10 +62,6 @@ class LoginViewModel extends ChangeNotifier {
         ),
       );
     }
-  }
-
-  Future takePlayerId() async {
-    String? _token = CacheManager().getString(PreferencesKeys.TOKEN.toString());
   }
 
   void tapButton() {

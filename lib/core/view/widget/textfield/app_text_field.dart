@@ -11,6 +11,7 @@ class AppTextField extends BaseStateless {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool? isObscure;
+  final String? Function(String?)? validator;
 
   const AppTextField({
     super.key,
@@ -23,6 +24,7 @@ class AppTextField extends BaseStateless {
     required this.controller,
     required this.focusNode,
     this.isObscure = false,
+    this.validator,
   });
 
   @override
@@ -30,6 +32,7 @@ class AppTextField extends BaseStateless {
     return TextFormField(
       obscureText: isObscure!,
       controller: controller,
+      validator: validator,
       focusNode: focusNode,
       textAlign: TextAlign.center,
       style: textStyle ??
@@ -56,6 +59,20 @@ class AppTextField extends BaseStateless {
           ),
         ),
         focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(borderRadius ?? 66.0),
+          borderSide: BorderSide(
+            width: 1.0,
+            color: borderColor ?? color.dark20,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(borderRadius ?? 66.0),
+          borderSide: BorderSide(
+            width: 1.0,
+            color: borderColor ?? color.dark20,
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(borderRadius ?? 66.0),
           borderSide: BorderSide(
             width: 1.0,

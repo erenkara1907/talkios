@@ -15,4 +15,7 @@ class LottieConstant {
   String swipe = "$asset" "swipe.json";
   String networkError = "$asset" "network_error.json";
   String pronunciationLoading = "$asset" "pronunciation_loading.json";
+  String voiceRecording = "$asset" "voice_recording.json";
+  String recording = "$asset" "recording.json";
+  String recordingBlack = "$asset" "recording_black.json";
 }

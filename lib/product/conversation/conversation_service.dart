@@ -127,7 +127,12 @@ class ConversationService {
           "score": score,
         });
 
-    print("response : ${response.body}");
+    print("cId : $conversationId");
+    print("mId : $messageId");
+    print("token : ${token.isEmpty ? "BOŞ" : token}");
+    print("score : ${score.isEmpty ? "BOŞ" : score}");
+
+    print("responsee . ${response.body}");
 
     return MessageUpdateModel.fromJson(jsonDecode(response.body));
   }
@@ -224,8 +229,6 @@ class ConversationService {
     var streamedResponse = await request.send();
     var response = await http.Response.fromStream(streamedResponse);
 
-    print("response : ${response.body}");
-
     Map<String, dynamic> jsonResponse = json.decode(response.body);
 
     // JsonResponse'u modelinize dönüştürün
@@ -256,8 +259,6 @@ class ConversationService {
       },
       body: jsonEncode(body),
     );
-
-    print("ressponse : ${response.body}");
 
     return ConversationUpdateModel.fromJson(jsonDecode(response.body));
   }

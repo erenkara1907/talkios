@@ -9,11 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:talkios/core/view/base/base_stateless.dart';
 import 'package:talkios/core/view/widget/textfield/chat_textfield.dart';
 import 'package:talkios/product/conversation/viewmodel/conversation_room_view_model.dart';
-import 'package:top_snackbar_flutter/custom_snack_bar.dart';
-import 'package:top_snackbar_flutter/top_snack_bar.dart';
 
-import '../../../../product/conversation/viewmodel/bottom_menu_view_model.dart';
-import '../../../constant/config_constant.dart';
 import '../../../util/provider/sound/dubbing_provider.dart';
 import '../../../util/provider/sound/speech_provider.dart';
 
@@ -25,6 +21,7 @@ class InputMenu extends BaseStateless {
   final DubbingProvider dubbingProvider;
   final ConversationRoomViewModel viewModel;
   final String hintText;
+  final String gender;
   InputMenu({
     super.key,
     required this.controller,
@@ -34,6 +31,7 @@ class InputMenu extends BaseStateless {
     required this.dubbingProvider,
     required this.viewModel,
     required this.hintText,
+    required this.gender,
   });
 
   AudioPlayer player = AudioPlayer();
@@ -64,6 +62,7 @@ class InputMenu extends BaseStateless {
                     onPressed: askText.isNotEmpty
                         ? () {
                             dubbingProvider.stop();
+                            context.read<DubbingProvider>().stop();
                             context
                                 .read<ConversationRoomViewModel>()
                                 .changeEmptyTextStatus(true);
@@ -140,98 +139,105 @@ class InputMenu extends BaseStateless {
             type: MaterialType.transparency,
             child: GestureDetector(
               onTap: () async {
-                dubbingProvider.stop();
-                await player.play(AssetSource(sound.voiceButton));
-                context.read<ConversationRoomViewModel>().showWarning();
-                Provider.of<SpeechProvider>(context, listen: false)
-                    .getPermissionAndStartListening(context);
+                context.read<ConversationRoomViewModel>().isKeyboard = false;
+                // dubbingProvider.stop();
+                // context.read<DubbingProvider>().stop();
+                // await player.play(AssetSource(sound.voiceButton));
+                // context.read<ConversationRoomViewModel>().showWarning();
+                // Provider.of<SpeechProvider>(context, listen: false)
+                //     .getPermissionAndStartListening(context);
               },
-              onLongPress: () async {
-                if (!context.read<ConversationRoomViewModel>().isTyping) {
-                  dubbingProvider.stop();
-                  await player.play(AssetSource(sound.voiceButton));
-                  HapticFeedback.heavyImpact();
-                  if (context.read<SpeechProvider>().isRecord) {
-                    Provider.of<SpeechProvider>(context, listen: false)
-                        .record(false);
-                  } else {
-                    Provider.of<SpeechProvider>(context, listen: false)
-                        .record(true);
-                  }
-                  Provider.of<SpeechProvider>(context, listen: false)
-                      .startListening();
-                  await context
-                      .read<ConversationRoomViewModel>()
-                      .startRecording();
-                } else {
-                  showTopSnackBar(
-                    Overlay.of(context),
-                    const CustomSnackBar.error(
-                      message:
-                          "You cannot send multiple message at the same time",
-                    ),
-                  );
-                }
+              onLongPress: () {
+                context.read<ConversationRoomViewModel>().isKeyboard = false;
+                // if (!context.read<ConversationRoomViewModel>().isTyping) {
+                //   dubbingProvider.stop();
+                //   context.read<DubbingProvider>().stop();
+                //   await player.play(AssetSource(sound.voiceButton));
+                //   HapticFeedback.heavyImpact();
+                //   if (context.read<SpeechProvider>().isRecord) {
+                //     Provider.of<SpeechProvider>(context, listen: false)
+                //         .record(false);
+                //   } else {
+                //     Provider.of<SpeechProvider>(context, listen: false)
+                //         .record(true);
+                //   }
+                //   Provider.of<SpeechProvider>(context, listen: false)
+                //       .startListening();
+                //   await context
+                //       .read<ConversationRoomViewModel>()
+                //       .startRecording();
+                // } else {
+                //   showTopSnackBar(
+                //     Overlay.of(context),
+                //     const CustomSnackBar.error(
+                //       message:
+                //           "You cannot send multiple message at the same time",
+                //     ),
+                //   );
+                // }
               },
-              onLongPressEnd: (details) async {
-                Provider.of<SpeechProvider>(context, listen: false)
-                    .stopListening();
-                await context.read<ConversationRoomViewModel>().stopRecording();
-                if (!context.read<SpeechProvider>().isRecord) {
-                  Provider.of<SpeechProvider>(context, listen: false)
-                      .record(true);
-                } else {
-                  Provider.of<SpeechProvider>(context, listen: false)
-                      .record(false);
-                }
-                Provider.of<SpeechProvider>(context, listen: false)
-                    .record(false);
-                ConversationRoomViewModel provider =
-                    context.read<ConversationRoomViewModel>();
-                Future.delayed(
-                  const Duration(seconds: 1),
-                  () {
-                    provider
-                        .voiceText(context.read<SpeechProvider>().lastWords);
-                    provider.changeEmptyTextStatus(false);
-                    provider.sendAutomaticMessage(true);
-                    Future.delayed(
-                      const Duration(seconds: 1),
-                      () async {
-                        if (provider.isSendAutomaticMessage &&
-                            provider.askController.text.isNotEmpty) {
-                          context
-                              .read<ConversationRoomViewModel>()
-                              .changeEmptyTextStatus(true);
-                          provider.addToChatList(provider.askController.text,
-                              (provider.chats[0].id! + 1).toString());
-                          analyticInstance.logEvent(
-                              name: 'start_messaging_voice');
-                          context
-                              .read<ConversationRoomViewModel>()
-                              .firstConversationInfo(context);
-                          viewModel.askFocusNode.unfocus();
-                          context.read<BottomMenuViewModel>().openClue(false);
-                          context.read<BottomMenuViewModel>().openTask(false);
-                          await provider.sendMessage(
-                            context,
-                            message: context.read<SpeechProvider>().lastWords,
-                            conversationId: conversationId,
-                            path:
-                                context.read<ConversationRoomViewModel>().path,
-                          );
+              // onLongPressEnd: (details) async {
+              //   Provider.of<SpeechProvider>(context, listen: false)
+              //       .stopListening();
+              //   await context.read<ConversationRoomViewModel>().stopRecording();
+              //   if (!context.read<SpeechProvider>().isRecord) {
+              //     Provider.of<SpeechProvider>(context, listen: false)
+              //         .record(true);
+              //   } else {
+              //     Provider.of<SpeechProvider>(context, listen: false)
+              //         .record(false);
+              //   }
+              //   Provider.of<SpeechProvider>(context, listen: false)
+              //       .record(false);
+              //   ConversationRoomViewModel provider =
+              //       context.read<ConversationRoomViewModel>();
+              //   Future.delayed(
+              //     const Duration(seconds: 1),
+              //     () {
+              //       provider
+              //           .voiceText(context.read<SpeechProvider>().lastWords);
+              //       provider.changeEmptyTextStatus(false);
+              //       provider.sendAutomaticMessage(true);
+              //       Future.delayed(
+              //         const Duration(seconds: 1),
+              //         () async {
+              //           if (provider.isSendAutomaticMessage &&
+              //               provider.askController.text.isNotEmpty) {
+              //             context
+              //                 .read<ConversationRoomViewModel>()
+              //                 .changeEmptyTextStatus(true);
+              //             provider.addToChatList(provider.askController.text,
+              //                 (provider.chats[0].id! + 1).toString());
+              //             analyticInstance.logEvent(
+              //                 name: 'start_messaging_voice');
+              //             context
+              //                 .read<ConversationRoomViewModel>()
+              //                 .firstConversationInfo(context);
+              //             viewModel.askFocusNode.unfocus();
+              //             context.read<BottomMenuViewModel>().openClue(false);
+              //             context.read<BottomMenuViewModel>().openTask(false);
+              //             context.read<BottomMenuViewModel>().isOpenTranslate =
+              //                 false;
+              //             await provider.sendMessage(
+              //               context: context,
+              //               message: context.read<SpeechProvider>().lastWords,
+              //               conversationId: conversationId,
+              //               gender: gender,
+              //               path:
+              //                   context.read<ConversationRoomViewModel>().path,
+              //             );
 
-                          context.read<SpeechProvider>().lastWords = "";
-                          provider.askController.text = "";
-                        }
-                      },
-                    );
-                  },
-                );
+              //             context.read<SpeechProvider>().lastWords = "";
+              //             provider.askController.text = "";
+              //           }
+              //         },
+              //       );
+              //     },
+              //   );
 
-                await player.play(AssetSource(sound.voiceButton));
-                HapticFeedback.heavyImpact();
-              },
+              //   await player.play(AssetSource(sound.voiceButton));
+              //   HapticFeedback.heavyImpact();
+              // },
               child: Selector<SpeechProvider, bool>(
                 builder: (context, record, child) {
                   return AvatarGlow(

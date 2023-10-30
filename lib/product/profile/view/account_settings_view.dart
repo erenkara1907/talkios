@@ -90,27 +90,27 @@ class AccountSettingsView extends BaseStateless {
                   : "${profileModel.data!.user!.userDetail!.sessionLength} minutes",
             ),
             spacer(height: 10.0),
-            AccountButton(
-              label: "Listening Exercise",
-              isAvailableCheckbox: true,
-              onPressed: () => state.listenExercise(),
-              checkValue: state.isListenExercise,
-            ),
-            spacer(height: 10.0),
-            AccountButton(
-              label: "Sound Effects",
-              isAvailableCheckbox: true,
-              onPressed: () => state.soundEffect(),
-              checkValue: state.isSoundEffect,
-            ),
-            spacer(height: 10.0),
-            AccountButton(
-              label: "Vibration",
-              isAvailableCheckbox: true,
-              onPressed: () => state.vibration(),
-              checkValue: state.isVibration,
-            ),
-            spacer(height: 10.0),
+            // AccountButton(
+            //   label: "Listening Exercise",
+            //   isAvailableCheckbox: true,
+            //   onPressed: () => state.listenExercise(),
+            //   checkValue: state.isListenExercise,
+            // ),
+            // spacer(height: 10.0),
+            // AccountButton(
+            //   label: "Sound Effects",
+            //   isAvailableCheckbox: true,
+            //   onPressed: () => state.soundEffect(),
+            //   checkValue: state.isSoundEffect,
+            // ),
+            // spacer(height: 10.0),
+            // AccountButton(
+            //   label: "Vibration",
+            //   isAvailableCheckbox: true,
+            //   onPressed: () => state.vibration(),
+            //   checkValue: state.isVibration,
+            // ),
+            // spacer(height: 10.0),
             AccountButton(
               label: "Native Language",
               onPressed: () {

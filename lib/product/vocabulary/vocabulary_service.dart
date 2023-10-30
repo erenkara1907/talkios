@@ -29,7 +29,7 @@ class VocabularyService {
         Uri.parse("${ApiConstant.instance.conversationUrl}/$conversationId"),
         headers: {
           "Authorization": "Bearer $token",
-          'Content-Type': 'application/x-www-form-urlencoded',
+          // 'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: {
           "score": score,
