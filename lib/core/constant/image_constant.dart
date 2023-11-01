@@ -18,6 +18,9 @@ class ImageConstant {
   String firstChat = '$asset' 'first_chat.png';
   String ellipseLeft = '$asset' 'ellipse_left.png';
   String ellipseRight = '$asset' 'ellipse_right.png';
+  String pyramidOne = '$asset' 'pyramid_one.png';
+  String pyramidTwo = '$asset' 'pyramid_two.png';
+  String pyramidThree = '$asset' 'pyramid_three.png';
 
   // Svg
   String mapLine = '$asset' 'map_line.svg';

@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_azure_tts/flutter_azure_tts.dart';
 import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:talkios/core/cache/cache_manager.dart';
@@ -18,8 +17,6 @@ import 'package:talkios/core/util/provider/time_provider.dart';
 import 'package:talkios/core/util/provider/translate_provider.dart';
 import 'package:talkios/core/util/provider/vocabulary_state.dart';
 import 'package:talkios/core/view/theme/theme.dart';
-import 'package:talkios/playht_provider.dart';
-import 'package:talkios/playht_view.dart';
 import 'package:talkios/product/auth/forgot_password/viewmodel/forgot_password_view_model.dart';
 import 'package:talkios/product/auth/forgot_password/viewmodel/reset_password_view_model.dart';
 import 'package:talkios/product/auth/login/login_view_model.dart';
@@ -32,6 +29,7 @@ import 'package:talkios/product/home/home_view_model.dart';
 import 'package:talkios/product/home/view/new_home_view.dart';
 import 'package:talkios/product/onboard/page_view.dart';
 import 'package:talkios/product/onboard/page_view_model.dart';
+import 'package:talkios/product/premium/premium_view_model.dart';
 import 'package:talkios/product/profile/profile_view_model.dart';
 import 'package:talkios/product/vocabulary/vocabulary_view_model.dart';
 
@@ -45,22 +43,18 @@ Future<void> main() async {
 
   await CacheManager().init();
   await Firebase.initializeApp();
-  AzureTts.init(
-    subscriptionKey: "d2d2388a684242259c292c90405789bd",
-    region: "eastus",
-    withLogs: true,
-  );
 
-  if (Platform.isIOS || Platform.isMacOS) {
-    StoreConfig(store: StoreEnum.appleStore, apiKey: appleApiKey);
-  } else if (Platform.isAndroid) {
-    // const useAmazon = bool.fromEnvironment("amazon");
-    // StoreConfig(
-    //     store: useAmazon ? Store.amazonAppStore : Store.googlePlay,
-    //     apiKey: appleApiKey);
-  }
+  // if (Platform.isIOS || Platform.isMacOS) {
+  //   StoreConfig(store: StoreEnum.appleStore, apiKey: appleApiKey);
+  // } else if (Platform.isAndroid) {
+  //   StoreConfig(store: StoreEnum.googlePlay, apiKey: "appleApiKey");
+  //   // const useAmazon = bool.fromEnvironment("amazon");
+  //   // StoreConfig(
+  //   //     store: useAmazon ? Store.amazonAppStore : Store.googlePlay,
+  //   //     apiKey: appleApiKey);
+  // }
 
-  await _configureSDK();
+  // await _configureSDK();
 
   runApp(MultiProvider(
     providers: [
@@ -85,7 +79,7 @@ Future<void> main() async {
       ChangeNotifierProvider(create: (context) => VocabularyState()),
       ChangeNotifierProvider(create: (context) => ScrollProvider()),
       ChangeNotifierProvider(create: (context) => PageViewModel()),
-      ChangeNotifierProvider(create: (context) => PlayHTProvider()),
+      ChangeNotifierProvider(create: (context) => PremiumViewModel()),
     ],
     child: const MyApp(),
   ));
@@ -123,6 +117,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           usageDuration: durationInSeconds.toString(),
         );
         // Google Analytics'e süreyi gönder
+        print("seecond : $durationInSeconds");
         analyticInstance.logEvent(
           name: 'daily_usage',
           parameters: {

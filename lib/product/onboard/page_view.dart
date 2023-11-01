@@ -49,7 +49,6 @@ class _MyPageViewState extends BaseState<MyPageView> {
           children: [
             PageView.builder(
               controller: _pageController,
-              
               itemCount: viewModel.pages.length,
               itemBuilder: (context, index) {
                 return SinglePage(

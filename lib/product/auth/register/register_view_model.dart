@@ -212,7 +212,7 @@ class RegisterViewModel extends ChangeNotifier {
   // FocusNode
   FocusNode emailFocusNode = FocusNode();
   FocusNode passwordFocusNode = FocusNode();
-  FocusNode nameFocusNode = FocusNode(); 
+  FocusNode nameFocusNode = FocusNode();
 
   // Function
   set isCheckedTerms(bool value) {
@@ -222,46 +222,57 @@ class RegisterViewModel extends ChangeNotifier {
 
   Future register(
       BuildContext context, Map<String, dynamic> userInfo, String mail) async {
-    isTap = true;
-    final response = await service.register(userInfo);
+    try {
+      isTap = true;
+      final response = await service.register(userInfo);
 
-    if (response.result != null && response.result!) {
-      await CacheManager()
-          .setBool(PreferencesKeys.IS_FIRST_CONVERSATION.toString(), true);
-      await CacheManager()
-          .setBool(PreferencesKeys.IS_FIRST_VOCABULARY.toString(), true);
+      if (response.result != null && response.result!) {
+        await CacheManager()
+            .setBool(PreferencesKeys.IS_FIRST_CONVERSATION.toString(), true);
+        await CacheManager()
+            .setBool(PreferencesKeys.IS_FIRST_VOCABULARY.toString(), true);
 
-      String _token = response.data!.token!;
-      CacheManager().setString(PreferencesKeys.TOKEN.toString(), _token);
-      analyticInstance.logEvent(name: 'signed_up');
+        String _token = response.data!.token!;
+        CacheManager().setString(PreferencesKeys.TOKEN.toString(), _token);
+        analyticInstance.logEvent(name: 'signed_up');
 
+        showTopSnackBar(
+          Overlay.of(context),
+          const CustomSnackBar.success(
+            message: "Verification email sent",
+          ),
+        );
+
+        isTap = false;
+
+        Future.delayed(
+          const Duration(milliseconds: 300),
+          () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) =>
+                    VerifyTokenView(isRedirect: "Register", mail: mail),
+              ),
+            );
+          },
+        );
+      } else {
+        isTap = false;
+        String _message = response.validationError!.email![0];
+        showTopSnackBar(
+          Overlay.of(context),
+          CustomSnackBar.error(
+            message: _message,
+          ),
+        );
+      }
+    } catch (e) {
+      isTap = false;
       showTopSnackBar(
         Overlay.of(context),
-        const CustomSnackBar.success(
-          message: "Verification email sent",
-        ),
-      );
-
-      isTap = false;
-
-      Future.delayed(
-        const Duration(milliseconds: 300),
-        () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) =>
-                  VerifyTokenView(isRedirect: "Register", mail: mail),
-            ),
-          );
-        },
-      );
-    } else {
-      isTap = false;
-      String _message = response.validationError!.email![0];
-      showTopSnackBar(
-        Overlay.of(context),
-        CustomSnackBar.error(
-          message: _message,
+        const CustomSnackBar.error(
+          message:
+              "The password must contain at least 1 number, 1 uppercase letter",
         ),
       );
     }

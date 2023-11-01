@@ -25,6 +25,8 @@ class RegisterService {
       body: jsonEncode(userInfo),
     );
 
+    print("respnse : ${response.body}");
+
     return ProfileUpdateModel.fromJson(jsonDecode(response.body));
   }
 }

@@ -1,5 +1,7 @@
 // ignore_for_file: no_leading_underscores_for_local_identifiers
 
+import 'dart:io';
+
 import 'package:http/http.dart' as http;
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:talkios/core/cache/cache_manager.dart';
@@ -22,7 +24,9 @@ class OneSignalService {
       OneSignal.initialize("ef5132ca-0d9a-438b-85e4-63a360dfe6a2");
 
       // The promptForPushNotificationsWithUserResponse function will show the iOS or Android push notification prompt. We recommend removing the following code and instead using an In-App Message to prompt for notification permission
-      await OneSignal.Notifications.requestPermission(true);
+      if (Platform.isIOS) {
+        await OneSignal.Notifications.requestPermission(true);
+      }
 
       String? _newPlayerId = OneSignal.User.pushSubscription.id;
       if (_newPlayerId != null &&

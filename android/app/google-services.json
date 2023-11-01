@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "956110792459",
+    "project_id": "talkios-ios",
+    "storage_bucket": "talkios-ios.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:956110792459:android:0e73b89c2dd29f0b33e40e",
+        "android_client_info": {
+          "package_name": "com.rondigital.chatbot"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDtFTWJHg_r5Rf3XiQlRPWEIg4XrX1xoVM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

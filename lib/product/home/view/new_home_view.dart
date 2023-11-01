@@ -4,17 +4,21 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:talkios/core/cache/cache_manager.dart';
 import 'package:talkios/core/enum/preference_keys.dart';
 import 'package:talkios/core/view/base/base_state.dart';
 import 'package:talkios/product/home/view/scenario_detail_view.dart';
+import 'package:talkios/product/premium/premium_view.dart';
 import 'package:talkios/product/vocabulary/view/new_vocabulary_view.dart';
 
 import '../../../core/constant/config_constant.dart';
+import '../../../core/constant/revenuecat_constants.dart';
 import '../../../core/util/connectivity_service.dart';
 import '../../../core/util/provider/image/image_upload_view_model.dart';
 import '../../../core/view/widget/button/app_button.dart';
@@ -398,57 +402,25 @@ class _HomeViewState extends BaseState<HomeView> {
                     heroTag:
                         "aiProfilePhoto${viewModel.scenarios[actualIndex].id}",
                     onTap: () async {
-                      await CacheManager().setString(
-                          PreferencesKeys.INDEX.toString(),
-                          actualIndex.toString());
-                      if (viewModel.scenarios[actualIndex].isLocked == 0) {
-                        viewModel.wordCheckFirst(
-                            viewModel.scenarios[actualIndex].scenarioWords!);
-                        String scenarioName = viewModel
-                            .scenarios[actualIndex].title!
-                            .toLowerCase();
-                        String formattedScenarioName =
-                            scenarioName.replaceAll(' ', '_');
-                        analyticInstance.logEvent(
-                            name: 'scenario_selection_$formattedScenarioName');
-                        context.read<HomeViewModel>().setConversationId(-1);
+                      // Kullanıcının abonelik bilgilerini al
+                      CustomerInfo customerInfo =
+                          await Purchases.getCustomerInfo();
 
-                        push(
-                          ScenarioDetailView(
-                            isActive: viewModel
-                                .scenarios[actualIndex].conversationIsActive!,
-                            colorValue: buttonColors[colorIndex],
-                            gender: viewModel.scenarios[actualIndex].gender!,
-                            conversationId: viewModel
-                                    .scenarios[actualIndex].conversationId ??
-                                0,
-                            isConversation: viewModel
-                                .scenarios[actualIndex].isConversation!,
-                            score: viewModel
-                                .profileModel.data!.user!.userDetail!.score!,
-                            scenarioName:
-                                viewModel.scenarios[actualIndex].title!,
-                            level: "${actualIndex + 1}",
-                            words: viewModel.newWordsFirst,
-                            userProfilePhoto: viewModel
-                                .profileModel.data!.user!.profilePhoto!,
-                            // aiProfilePhoto:
-                            //     viewModel.scenarios[index].photo!,
-                            aiProfilePhoto:
-                                viewModel.scenarios[actualIndex].photo!,
-                            scenarioId: viewModel.scenarios[actualIndex].id!,
-                            tagId:
-                                "aiProfilePhoto${viewModel.scenarios[actualIndex].id}",
-                            subTitle:
-                                viewModel.scenarios[actualIndex].subTitle!,
-                            scenarioDescription:
-                                viewModel.scenarios[actualIndex].scenario!,
-                          ),
-                        );
+                      // Belirli bir aboneliği kontrol et (Örnek olarak "premium" adında bir abonelik)
+                      EntitlementInfo? premiumEntitlement =
+                          customerInfo.entitlements.all["premium"];
+                      if (premiumEntitlement != null &&
+                          premiumEntitlement.isActive &&
+                          viewModel.purchaseModel.data != null &&
+                          viewModel.purchaseModel.data!.purchases![0]
+                                  .purchased !=
+                              0) {
+                        scenarioTap(actualIndex, colorIndex);
+                      } else if (viewModel.scenarios[0].conversationIsActive !=
+                          0) {
+                        scenarioTap(actualIndex, colorIndex);
                       } else {
-                        context.read<HomeViewModel>().tapLock(true);
-                        context.read<HomeViewModel>().scenarioIndex =
-                            actualIndex;
+                        perfomMagic();
                       }
                     },
                     photo: viewModel.scenarios[actualIndex].photo!,
@@ -970,5 +942,73 @@ class _HomeViewState extends BaseState<HomeView> {
         ),
       ),
     );
+  }
+
+  void perfomMagic() async {
+    CustomerInfo customerInfo = await Purchases.getCustomerInfo();
+
+    if (customerInfo.entitlements.all[entitlementId] != null &&
+        customerInfo.entitlements.all[entitlementId]?.isActive == true) {
+    } else {
+      Offerings? offerings;
+      try {
+        offerings = await Purchases.getOfferings();
+      } on PlatformException {
+        // await showDialog(
+        //     context: context,
+        //     builder: (BuildContext context) => ShowDialogToDismiss(
+        //         title: "Error",
+        //         content: e.message ?? "Unknown error",
+        //         buttonText: 'OK'));
+      }
+
+      if (offerings == null || offerings.current == null) {
+        // offerings are empty, show a message to your user
+      } else {
+        // current offering is available, show paywall
+        push(
+          PremiumView(offering: offerings.current!),
+        );
+      }
+    }
+  }
+
+  void scenarioTap(int actualIndex, int colorIndex) async {
+    await CacheManager()
+        .setString(PreferencesKeys.INDEX.toString(), actualIndex.toString());
+    if (viewModel.scenarios[actualIndex].isLocked == 0) {
+      viewModel.wordCheckFirst(viewModel.scenarios[actualIndex].scenarioWords!);
+      String scenarioName =
+          viewModel.scenarios[actualIndex].title!.toLowerCase();
+      String formattedScenarioName = scenarioName.replaceAll(' ', '_');
+      analyticInstance.logEvent(
+          name: 'scenario_selection_$formattedScenarioName');
+      context.read<HomeViewModel>().setConversationId(-1);
+
+      push(
+        ScenarioDetailView(
+          isActive: viewModel.scenarios[actualIndex].conversationIsActive!,
+          colorValue: buttonColors[colorIndex],
+          gender: viewModel.scenarios[actualIndex].gender!,
+          conversationId: viewModel.scenarios[actualIndex].conversationId ?? 0,
+          isConversation: viewModel.scenarios[actualIndex].isConversation!,
+          score: viewModel.profileModel.data!.user!.userDetail!.score!,
+          scenarioName: viewModel.scenarios[actualIndex].title!,
+          level: "${actualIndex + 1}",
+          words: viewModel.newWordsFirst,
+          userProfilePhoto: viewModel.profileModel.data!.user!.profilePhoto!,
+          // aiProfilePhoto:
+          //     viewModel.scenarios[index].photo!,
+          aiProfilePhoto: viewModel.scenarios[actualIndex].photo!,
+          scenarioId: viewModel.scenarios[actualIndex].id!,
+          tagId: "aiProfilePhoto${viewModel.scenarios[actualIndex].id}",
+          subTitle: viewModel.scenarios[actualIndex].subTitle!,
+          scenarioDescription: viewModel.scenarios[actualIndex].scenario!,
+        ),
+      );
+    } else {
+      context.read<HomeViewModel>().tapLock(true);
+      context.read<HomeViewModel>().scenarioIndex = actualIndex;
+    }
   }
 }

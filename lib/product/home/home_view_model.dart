@@ -10,6 +10,7 @@ import 'package:talkios/product/auth/register/view/pagination_view.dart';
 import 'package:talkios/product/auth/verify/verify_token_view.dart';
 import 'package:talkios/product/conversation/view/conversation_room_view.dart';
 import 'package:talkios/product/home/home_service.dart';
+import 'package:talkios/product/home/model/purchase_api_model.dart';
 import 'package:talkios/product/profile/model/profile_model.dart';
 import 'package:top_snackbar_flutter/custom_snack_bar.dart';
 import 'package:top_snackbar_flutter/top_snack_bar.dart';
@@ -26,6 +27,7 @@ class HomeViewModel extends ChangeNotifier {
 
   // Model
   ProfileModel profileModel = ProfileModel();
+  PurchaseAPIModel purchaseModel = PurchaseAPIModel();
 
   // Variable
   List<Scenarios> scenarios = [];
@@ -76,9 +78,19 @@ class HomeViewModel extends ChangeNotifier {
   void controlUserInformation(
       BuildContext context, ProfileModel model, List<Scenarios> scenarios) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (scenarios.isNotEmpty) {
+        print("scenario : ${scenarios[0].isLocked}");
+      } else {
+        print("scenarios listesi boş");
+      }
+
       if (isDialogShown && model.data != null && model.data!.user != null) {
         if (model.data!.user!.emailVerified == null) {
           emailVerifiedDialog(context, model).then((value) {
+            isDialogShown = false;
+          });
+        } else if (scenarios.isEmpty) {
+          wizardDialog(context, model).then((value) {
             isDialogShown = false;
           });
         } else if (scenarios[0].isLocked == 1) {
@@ -381,7 +393,11 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future getProfileAndScenarios(BuildContext context) async {
-    await Future.wait([getProfileInfo(context), getAllScenarios(context)]);
+    await Future.wait([
+      getProfileInfo(context),
+      getAllScenarios(context),
+      purchaseInfo(),
+    ]);
   }
 
   Future getAllScenarios(BuildContext context) async {
@@ -430,6 +446,16 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  Future purchaseInfo() async {
+    String? _token = CacheManager().getString(PreferencesKeys.TOKEN.toString());
+    if (_token != null) {
+      final response = await _service.purchaseInfo(_token);
+      if (response.result!) {
+        purchaseModel = response;
+      }
+    }
+  }
+
   int conversationId = -1;
 
   setConversationId(int id) {
@@ -455,7 +481,7 @@ class HomeViewModel extends ChangeNotifier {
 
     if (respoonse.result!) {
       setConversationId(respoonse.data!.conversation!.id!);
-      print("conversation Id : ${respoonse.data!.conversation!.id!}");
+
       Future.delayed(
         const Duration(milliseconds: 300),
         () {

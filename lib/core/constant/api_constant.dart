@@ -45,4 +45,8 @@ class ApiConstant {
 
   // PlayerId
   String playerId = "$baseUrl/notifications/update-one-signal-player-id";
+
+  // Purchase
+  String purchaseUrl = "$baseUrl/purchases";
+  String purchasePostUrl = "$baseUrl/purchases/purchase";
 }
